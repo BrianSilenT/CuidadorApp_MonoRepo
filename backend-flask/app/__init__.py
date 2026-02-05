@@ -12,7 +12,20 @@ def create_app():
     migrate.init_app(app, db)
     cors.init_app(app)
 
-    # Registrar rutas (blueprints)
-    # Los iremos agregando a medida que los creemos
+    # Importar modelos para que Flask-Migrate los detecte
+    from app.models import Usuario, Cuidador, Paciente, Guardia, Pago
+
+    # Registrar blueprints (rutas)
+    from app.routes.usuario_routes import usuario_bp
+    from app.routes.cuidador_routes import cuidador_bp
+    from app.routes.paciente_routes import paciente_bp
+    from app.routes.guardia_routes import guardia_bp
+    from app.routes.pago_routes import pago_bp
+
+    app.register_blueprint(usuario_bp)
+    app.register_blueprint(cuidador_bp)
+    app.register_blueprint(paciente_bp)
+    app.register_blueprint(guardia_bp)
+    app.register_blueprint(pago_bp)
 
     return app
