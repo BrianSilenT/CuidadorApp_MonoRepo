@@ -2,10 +2,15 @@ package com.CuidadorApp.backend.service;
 
 import com.CuidadorApp.backend.Model.Pago;
 import com.CuidadorApp.backend.Repository.PagoRepository;
+import com.mercadopago.MercadoPagoConfig;
+import com.mercadopago.client.preference.*;
+import com.mercadopago.resources.preference.Preference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -14,31 +19,57 @@ public class PagoService {
     @Autowired
     private PagoRepository pagoRepository;
 
-    // --- NUEVO MÉTODO PARA EL CONTROLLER ---
-    public List<Pago> obtenerTodosLosPagos() {
-        return pagoRepository.findAll();
-    }
+    // TODO: Reemplaza esto con tu Access Token real de Mercado Pago
+    private String accessToken = "TU_ACCESS_TOKEN_DE_PRUEBA";
 
-    // 1. Método para registrar el intento de pago en tu DB
     public Pago crearIntentoDePago(Pago pago) {
         pago.setFechaPago(LocalDate.now());
-        pago.setConfirmado(false); // Empieza como falso hasta que la pasarela confirme
-        return pagoRepository.save(pago);
+        pago.setConfirmado(false);
+        pago.setEstado("PENDIENTE");
+
+        // Guardamos en DB primero
+        Pago pagoGuardado = pagoRepository.save(pago);
+
+        // Generamos el link de Mercado Pago
+        String urlPago = procesarConPasarela(pagoGuardado);
+        pagoGuardado.setExternalReference(urlPago); // Guardamos el link generado
+
+        return pagoRepository.save(pagoGuardado);
     }
 
-    // 2. Aquí iría la lógica de Mercado Pago o Stripe
     public String procesarConPasarela(Pago pago) {
-        // Aquí llamarías al SDK de la pasarela que elijas
-        return "https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=123";
+        try {
+            MercadoPagoConfig.setAccessToken(accessToken);
+
+            PreferenceItemRequest itemRequest = PreferenceItemRequest.builder()
+                    .title("Servicio de Cuidador - App")
+                    .quantity(1)
+                    .unitPrice(new BigDecimal(pago.getMonto()))
+                    .build();
+
+            List<PreferenceItemRequest> items = new ArrayList<>();
+            items.add(itemRequest);
+
+            PreferenceRequest preferenceRequest = PreferenceRequest.builder()
+                    .items(items)
+                    .backUrls(PreferenceBackUrlsRequest.builder()
+                            .success("http://localhost:8080/success") // Tu página de éxito
+                            .pending("http://localhost:8080/pending")
+                            .failure("http://localhost:8080/failure")
+                            .build())
+                    .build();
+
+            PreferenceClient client = new PreferenceClient();
+            Preference preference = client.create(preferenceRequest);
+
+            return preference.getInitPoint(); // Este es el URL real para pagar
+
+        } catch (Exception e) {
+            return "Error al generar pago: " + e.getMessage();
+        }
     }
 
-    // 3. Método para actualizar cuando el pago sea exitoso
-    public void confirmarPago(Long id, String externalId) {
-        pagoRepository.findById(id).ifPresent(pago -> {
-            pago.setConfirmado(true);
-            // Si agregaste el campo externalReference en el Modelo, descomenta la línea de abajo:
-            // pago.setExternalReference(externalId);
-            pagoRepository.save(pago);
-        });
+    public List<Pago> obtenerTodosLosPagos() {
+        return pagoRepository.findAll();
     }
 }
