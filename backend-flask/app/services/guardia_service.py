@@ -83,3 +83,31 @@ def eliminar_guardia(id):
     db.session.delete(guardia)
     db.session.commit()
     return {"mensaje": "Guardia eliminada correctamente"}, 200
+
+
+def obtener_horas_por_cuidador(cuidador_id):
+    guardias = Guardia.query.filter_by(cuidador_id=cuidador_id).all()
+    total_horas = 0
+    for g in guardias:
+        total_horas = total_horas + g.horas_trabajadas
+    return {
+        "cuidador_id": cuidador_id,
+        "total_horas": total_horas,
+        "total_guardias": len(guardias)
+    }
+
+
+def obtener_horas_por_cuidador_y_paciente(cuidador_id, paciente_id):
+    guardias = Guardia.query.filter_by(
+        cuidador_id=cuidador_id,
+        paciente_id=paciente_id
+    ).all()
+    total_horas = 0
+    for g in guardias:
+        total_horas = total_horas + g.horas_trabajadas
+    return {
+        "cuidador_id": cuidador_id,
+        "paciente_id": paciente_id,
+        "total_horas": total_horas,
+        "total_guardias": len(guardias)
+    }

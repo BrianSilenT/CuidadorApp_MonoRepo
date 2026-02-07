@@ -47,3 +47,13 @@ def eliminar(id):
     if isinstance(resultado, tuple):
         return jsonify(resultado[0]), resultado[1]
     return jsonify(resultado), 200
+
+@guardia_bp.route("/horas/cuidador/<int:cuidador_id>", methods=["GET"])
+def horas_por_cuidador(cuidador_id):
+    resultado = guardia_service.obtener_horas_por_cuidador(cuidador_id)
+    return jsonify(resultado), 200
+
+@guardia_bp.route("/horas/cuidador/<int:cuidador_id>/paciente/<int:paciente_id>", methods=["GET"])
+def horas_por_cuidador_y_paciente(cuidador_id, paciente_id):
+    resultado = guardia_service.obtener_horas_por_cuidador_y_paciente(cuidador_id, paciente_id)
+    return jsonify(resultado), 200
