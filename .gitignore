@@ -1,0 +1,8 @@
+# Ignorar configuración de IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Ignorar backend Java
+backend/
