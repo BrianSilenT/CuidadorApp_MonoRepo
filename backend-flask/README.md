@@ -161,6 +161,8 @@ El servidor arranca en `http://localhost:5000`
 | GET | `/guardias/<id>` | Obtener guardia por ID |
 | GET | `/guardias/cuidador/<id>` | Guardias por cuidador |
 | GET | `/guardias/paciente/<id>` | Guardias por paciente |
+| GET | `/guardias/horas/cuidador/<id>` | Total horas por cuidador |
+| GET | `/guardias/horas/cuidador/<id>/paciente/<id>` | Horas por cuidador y paciente |
 | POST | `/guardias/` | Crear guardia |
 | PUT | `/guardias/<id>` | Actualizar guardia |
 | DELETE | `/guardias/<id>` | Eliminar guardia |
