@@ -1,14 +1,17 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from app.services import paciente_service
 
 paciente_bp = Blueprint("pacientes", __name__, url_prefix="/pacientes")
 
 @paciente_bp.route("/", methods=["GET"])
+@jwt_required()
 def obtener_todos():
     pacientes = paciente_service.obtener_todos_pacientes()
     return jsonify(pacientes), 200
 
 @paciente_bp.route("/<int:id>", methods=["GET"])
+@jwt_required()
 def obtener_por_id(id):
     paciente = paciente_service.obtener_paciente_por_id(id)
     if paciente:
@@ -16,6 +19,7 @@ def obtener_por_id(id):
     return jsonify({"error": "Paciente no encontrado"}), 404
 
 @paciente_bp.route("/", methods=["POST"])
+@jwt_required()
 def crear():
     datos = request.get_json()
     resultado = paciente_service.crear_paciente(datos)
@@ -24,6 +28,7 @@ def crear():
     return jsonify(resultado), 201
 
 @paciente_bp.route("/<int:id>", methods=["PUT"])
+@jwt_required()
 def actualizar(id):
     datos = request.get_json()
     resultado = paciente_service.actualizar_paciente(id, datos)
@@ -32,6 +37,7 @@ def actualizar(id):
     return jsonify(resultado), 200
 
 @paciente_bp.route("/<int:id>", methods=["DELETE"])
+@jwt_required()
 def eliminar(id):
     resultado = paciente_service.eliminar_paciente(id)
     if isinstance(resultado, tuple):

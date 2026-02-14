@@ -1,14 +1,17 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from app.services import usuario_service
 
 usuario_bp = Blueprint("usuarios", __name__, url_prefix="/usuarios")
 
 @usuario_bp.route("/", methods=["GET"])
+@jwt_required()
 def obtener_todos():
     usuarios = usuario_service.obtener_todos_usuarios()
     return jsonify(usuarios), 200
 
 @usuario_bp.route("/<int:id>", methods=["GET"])
+@jwt_required()
 def obtener_por_id(id):
     usuario = usuario_service.obtener_usuario_por_id(id)
     if usuario:
@@ -24,6 +27,7 @@ def crear():
     return jsonify(resultado), 201
 
 @usuario_bp.route("/<int:id>", methods=["PUT"])
+@jwt_required()
 def actualizar(id):
     datos = request.get_json()
     resultado = usuario_service.actualizar_usuario(id, datos)
@@ -32,6 +36,7 @@ def actualizar(id):
     return jsonify(resultado), 200
 
 @usuario_bp.route("/<int:id>", methods=["DELETE"])
+@jwt_required()
 def eliminar(id):
     resultado = usuario_service.eliminar_usuario(id)
     if isinstance(resultado, tuple):
