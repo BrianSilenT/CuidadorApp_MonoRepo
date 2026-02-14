@@ -26,7 +26,7 @@ def login():
         return jsonify({"error": "Credenciales inválidas"}), 401
 
     # Crear el token JWT
-    token = create_access_token(identity=usuario.id)
+    token = create_access_token(identity=str(usuario.id))
 
     return jsonify({
         "mensaje": "Login exitoso",

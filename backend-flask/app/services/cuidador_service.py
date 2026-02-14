@@ -45,6 +45,8 @@ def actualizar_cuidador(id, datos):
         cuidador.telefono = datos["telefono"]
     if "activo" in datos:
         cuidador.activo = datos["activo"]
+    if datos.get("usuario_id"):
+        cuidador.usuario_id = datos["usuario_id"]
 
     db.session.commit()
     return cuidador.to_dict(), 200
