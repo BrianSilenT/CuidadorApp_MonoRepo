@@ -25,6 +25,7 @@ def create_app():
     from app.routes.guardia_routes import guardia_bp
     from app.routes.pago_routes import pago_bp
     from app.routes.documento_routes import documento_bp
+    from app.routes.reporte_routes import reporte_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(usuario_bp)
@@ -33,5 +34,6 @@ def create_app():
     app.register_blueprint(guardia_bp)
     app.register_blueprint(pago_bp)
     app.register_blueprint(documento_bp)
+    app.register_blueprint(reporte_bp)
 
     return app
