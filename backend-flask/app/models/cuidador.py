@@ -13,6 +13,7 @@ class Cuidador(db.Model):
     # Relaciones
     guardias = db.relationship("Guardia", backref="cuidador", cascade="all, delete-orphan")
     pagos = db.relationship("Pago", backref="cuidador", cascade="all, delete-orphan")
+    documentos = db.relationship("Documento", backref="cuidador", cascade="all, delete-orphan")
 
     def to_dict(self):
         return {

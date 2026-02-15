@@ -15,7 +15,7 @@ def create_app():
     jwt.init_app(app)
 
     # Importar modelos para que Flask-Migrate los detecte
-    from app.models import Usuario, Cuidador, Paciente, Guardia, Pago
+    from app.models import Usuario, Cuidador, Paciente, Guardia, Pago, Documento
 
     # Registrar blueprints (rutas)
     from app.routes.auth_routes import auth_bp
@@ -24,6 +24,7 @@ def create_app():
     from app.routes.paciente_routes import paciente_bp
     from app.routes.guardia_routes import guardia_bp
     from app.routes.pago_routes import pago_bp
+    from app.routes.documento_routes import documento_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(usuario_bp)
@@ -31,5 +32,6 @@ def create_app():
     app.register_blueprint(paciente_bp)
     app.register_blueprint(guardia_bp)
     app.register_blueprint(pago_bp)
+    app.register_blueprint(documento_bp)
 
     return app
