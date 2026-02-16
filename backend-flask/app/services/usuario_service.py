@@ -1,12 +1,18 @@
 from app.extensions import db, bcrypt
 from app.models.usuario import Usuario
 
-def obtener_todos_usuarios():
-    usuarios = Usuario.query.all()
+def obtener_todos_usuarios(pagina=1, por_pagina=10):
+    paginacion = Usuario.query.paginate(page=pagina, per_page=por_pagina, error_out=False)
     listado = []
-    for u in usuarios:
+    for u in paginacion.items:
         listado.append(u.to_dict())
-    return listado
+    return {
+        "datos": listado,
+        "pagina": paginacion.page,
+        "por_pagina": paginacion.per_page,
+        "total": paginacion.total,
+        "paginas": paginacion.pages
+    }
 
 def obtener_usuario_por_id(id):
     usuario = Usuario.query.get(id)
@@ -20,6 +26,8 @@ def obtener_usuario_por_email(email):
         return usuario
     return None
 
+ROLES_VALIDOS = {"admin", "cuidador", "familia"}
+
 def crear_usuario(datos):
     # Validaciones
     if not datos.get("email"):
@@ -28,6 +36,10 @@ def crear_usuario(datos):
         return {"error": "La contraseña es obligatoria"}, 400
     if not datos.get("rol"):
         return {"error": "El rol es obligatorio"}, 400
+
+    # Validar rol
+    if datos["rol"] not in ROLES_VALIDOS:
+        return {"error": "Rol inválido. Roles válidos: admin, cuidador, familia"}, 400
 
     # Verificar si el email ya existe
     if obtener_usuario_por_email(datos["email"]):

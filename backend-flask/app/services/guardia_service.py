@@ -1,13 +1,21 @@
 from app.extensions import db
 from app.models.guardia import Guardia
+from app.models.cuidador import Cuidador
+from app.models.paciente import Paciente
 from datetime import datetime
 
-def obtener_todas_guardias():
-    guardias = Guardia.query.all()
+def obtener_todas_guardias(pagina=1, por_pagina=10):
+    paginacion = Guardia.query.paginate(page=pagina, per_page=por_pagina, error_out=False)
     listado = []
-    for g in guardias:
+    for g in paginacion.items:
         listado.append(g.to_dict())
-    return listado
+    return {
+        "datos": listado,
+        "pagina": paginacion.page,
+        "por_pagina": paginacion.per_page,
+        "total": paginacion.total,
+        "paginas": paginacion.pages
+    }
 
 def obtener_guardia_por_id(id):
     guardia = Guardia.query.get(id)
@@ -15,19 +23,31 @@ def obtener_guardia_por_id(id):
         return guardia.to_dict()
     return None
 
-def obtener_guardias_por_cuidador(cuidador_id):
-    guardias = Guardia.query.filter_by(cuidador_id=cuidador_id).all()
+def obtener_guardias_por_cuidador(cuidador_id, pagina=1, por_pagina=10):
+    paginacion = Guardia.query.filter_by(cuidador_id=cuidador_id).paginate(page=pagina, per_page=por_pagina, error_out=False)
     listado = []
-    for g in guardias:
+    for g in paginacion.items:
         listado.append(g.to_dict())
-    return listado
+    return {
+        "datos": listado,
+        "pagina": paginacion.page,
+        "por_pagina": paginacion.per_page,
+        "total": paginacion.total,
+        "paginas": paginacion.pages
+    }
 
-def obtener_guardias_por_paciente(paciente_id):
-    guardias = Guardia.query.filter_by(paciente_id=paciente_id).all()
+def obtener_guardias_por_paciente(paciente_id, pagina=1, por_pagina=10):
+    paginacion = Guardia.query.filter_by(paciente_id=paciente_id).paginate(page=pagina, per_page=por_pagina, error_out=False)
     listado = []
-    for g in guardias:
+    for g in paginacion.items:
         listado.append(g.to_dict())
-    return listado
+    return {
+        "datos": listado,
+        "pagina": paginacion.page,
+        "por_pagina": paginacion.per_page,
+        "total": paginacion.total,
+        "paginas": paginacion.pages
+    }
 
 def crear_guardia(datos):
     # Validaciones
@@ -35,10 +55,20 @@ def crear_guardia(datos):
         return {"error": "La fecha es obligatoria"}, 400
     if not datos.get("horas_trabajadas"):
         return {"error": "Las horas trabajadas son obligatorias"}, 400
+    if datos["horas_trabajadas"] <= 0:
+        return {"error": "Las horas trabajadas deben ser mayores a 0"}, 400
     if not datos.get("cuidador_id"):
         return {"error": "El cuidador es obligatorio"}, 400
     if not datos.get("paciente_id"):
         return {"error": "El paciente es obligatorio"}, 400
+
+    # Verificar que el cuidador exista
+    if not Cuidador.query.get(datos["cuidador_id"]):
+        return {"error": "El cuidador no existe"}, 404
+
+    # Verificar que el paciente exista
+    if not Paciente.query.get(datos["paciente_id"]):
+        return {"error": "El paciente no existe"}, 404
 
     # Convertir fecha string a objeto Date
     try:

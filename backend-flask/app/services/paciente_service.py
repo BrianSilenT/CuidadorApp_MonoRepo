@@ -1,12 +1,18 @@
 from app.extensions import db
 from app.models.paciente import Paciente
 
-def obtener_todos_pacientes():
-    pacientes = Paciente.query.all()
+def obtener_todos_pacientes(pagina=1, por_pagina=10):
+    paginacion = Paciente.query.paginate(page=pagina, per_page=por_pagina, error_out=False)
     listado = []
-    for p in pacientes:
+    for p in paginacion.items:
         listado.append(p.to_dict())
-    return listado
+    return {
+        "datos": listado,
+        "pagina": paginacion.page,
+        "por_pagina": paginacion.per_page,
+        "total": paginacion.total,
+        "paginas": paginacion.pages
+    }
 
 def obtener_paciente_por_id(id):
     paciente = Paciente.query.get(id)

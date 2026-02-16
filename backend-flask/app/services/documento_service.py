@@ -53,12 +53,18 @@ def subir_documento(archivo, cuidador_id, tipo_documento):
     return documento.to_dict(), 201
 
 
-def obtener_documentos_por_cuidador(cuidador_id):
-    documentos = Documento.query.filter_by(cuidador_id=cuidador_id).all()
+def obtener_documentos_por_cuidador(cuidador_id, pagina=1, por_pagina=10):
+    paginacion = Documento.query.filter_by(cuidador_id=cuidador_id).paginate(page=pagina, per_page=por_pagina, error_out=False)
     listado = []
-    for d in documentos:
+    for d in paginacion.items:
         listado.append(d.to_dict())
-    return listado
+    return {
+        "datos": listado,
+        "pagina": paginacion.page,
+        "por_pagina": paginacion.per_page,
+        "total": paginacion.total,
+        "paginas": paginacion.pages
+    }
 
 
 def eliminar_documento(id):
