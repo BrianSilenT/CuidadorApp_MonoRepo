@@ -1,13 +1,20 @@
 from app.extensions import db
 from app.models.pago import Pago
+from app.models.cuidador import Cuidador
 from datetime import datetime
 
-def obtener_todos_pagos():
-    pagos = Pago.query.all()
+def obtener_todos_pagos(pagina=1, por_pagina=10):
+    paginacion = Pago.query.paginate(page=pagina, per_page=por_pagina, error_out=False)
     listado = []
-    for p in pagos:
+    for p in paginacion.items:
         listado.append(p.to_dict())
-    return listado
+    return {
+        "datos": listado,
+        "pagina": paginacion.page,
+        "por_pagina": paginacion.per_page,
+        "total": paginacion.total,
+        "paginas": paginacion.pages
+    }
 
 def obtener_pago_por_id(id):
     pago = Pago.query.get(id)
@@ -15,19 +22,31 @@ def obtener_pago_por_id(id):
         return pago.to_dict()
     return None
 
-def obtener_pagos_por_cuidador(cuidador_id):
-    pagos = Pago.query.filter_by(cuidador_id=cuidador_id).all()
+def obtener_pagos_por_cuidador(cuidador_id, pagina=1, por_pagina=10):
+    paginacion = Pago.query.filter_by(cuidador_id=cuidador_id).paginate(page=pagina, per_page=por_pagina, error_out=False)
     listado = []
-    for p in pagos:
+    for p in paginacion.items:
         listado.append(p.to_dict())
-    return listado
+    return {
+        "datos": listado,
+        "pagina": paginacion.page,
+        "por_pagina": paginacion.per_page,
+        "total": paginacion.total,
+        "paginas": paginacion.pages
+    }
 
 def crear_pago(datos):
     # Validaciones
     if not datos.get("monto"):
         return {"error": "El monto es obligatorio"}, 400
+    if datos["monto"] <= 0:
+        return {"error": "El monto debe ser mayor a 0"}, 400
     if not datos.get("cuidador_id"):
         return {"error": "El cuidador es obligatorio"}, 400
+
+    # Verificar que el cuidador exista
+    if not Cuidador.query.get(datos["cuidador_id"]):
+        return {"error": "El cuidador no existe"}, 404
 
     fecha_pago = None
     if datos.get("fecha_pago"):
@@ -82,6 +101,7 @@ def confirmar_pago(id):
         return {"error": "Pago no encontrado"}, 404
 
     pago.confirmado = True
-    pago.fecha_pago = datetime.now().date()
+    if not pago.fecha_pago:
+        pago.fecha_pago = datetime.now().date()
     db.session.commit()
     return pago.to_dict(), 200

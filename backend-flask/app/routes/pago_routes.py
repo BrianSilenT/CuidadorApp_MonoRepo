@@ -9,8 +9,10 @@ pago_bp = Blueprint("pagos", __name__, url_prefix="/pagos")
 @jwt_required()
 @rol_requerido("admin")
 def obtener_todos():
-    pagos = pago_service.obtener_todos_pagos()
-    return jsonify(pagos), 200
+    pagina = request.args.get("pagina", 1, type=int)
+    por_pagina = request.args.get("por_pagina", 10, type=int)
+    resultado = pago_service.obtener_todos_pagos(pagina, por_pagina)
+    return jsonify(resultado), 200
 
 @pago_bp.route("/<int:id>", methods=["GET"])
 @jwt_required()
@@ -25,8 +27,10 @@ def obtener_por_id(id):
 @jwt_required()
 @rol_requerido("admin")
 def obtener_por_cuidador(cuidador_id):
-    pagos = pago_service.obtener_pagos_por_cuidador(cuidador_id)
-    return jsonify(pagos), 200
+    pagina = request.args.get("pagina", 1, type=int)
+    por_pagina = request.args.get("por_pagina", 10, type=int)
+    resultado = pago_service.obtener_pagos_por_cuidador(cuidador_id, pagina, por_pagina)
+    return jsonify(resultado), 200
 
 @pago_bp.route("/", methods=["POST"])
 @jwt_required()

@@ -9,8 +9,10 @@ paciente_bp = Blueprint("pacientes", __name__, url_prefix="/pacientes")
 @jwt_required()
 @rol_requerido("admin", "familia")
 def obtener_todos():
-    pacientes = paciente_service.obtener_todos_pacientes()
-    return jsonify(pacientes), 200
+    pagina = request.args.get("pagina", 1, type=int)
+    por_pagina = request.args.get("por_pagina", 10, type=int)
+    resultado = paciente_service.obtener_todos_pacientes(pagina, por_pagina)
+    return jsonify(resultado), 200
 
 @paciente_bp.route("/<int:id>", methods=["GET"])
 @jwt_required()

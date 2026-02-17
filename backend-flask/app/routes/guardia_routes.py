@@ -12,8 +12,10 @@ guardia_bp = Blueprint("guardias", __name__, url_prefix="/guardias")
 @jwt_required()
 @rol_requerido("admin", "cuidador")
 def obtener_todas():
-    guardias = guardia_service.obtener_todas_guardias()
-    return jsonify(guardias), 200
+    pagina = request.args.get("pagina", 1, type=int)
+    por_pagina = request.args.get("por_pagina", 10, type=int)
+    resultado = guardia_service.obtener_todas_guardias(pagina, por_pagina)
+    return jsonify(resultado), 200
 
 @guardia_bp.route("/<int:id>", methods=["GET"])
 @jwt_required()
@@ -28,15 +30,19 @@ def obtener_por_id(id):
 @jwt_required()
 @rol_requerido("admin", "cuidador")
 def obtener_por_cuidador(cuidador_id):
-    guardias = guardia_service.obtener_guardias_por_cuidador(cuidador_id)
-    return jsonify(guardias), 200
+    pagina = request.args.get("pagina", 1, type=int)
+    por_pagina = request.args.get("por_pagina", 10, type=int)
+    resultado = guardia_service.obtener_guardias_por_cuidador(cuidador_id, pagina, por_pagina)
+    return jsonify(resultado), 200
 
 @guardia_bp.route("/paciente/<int:paciente_id>", methods=["GET"])
 @jwt_required()
 @rol_requerido("admin", "familia")
 def obtener_por_paciente(paciente_id):
-    guardias = guardia_service.obtener_guardias_por_paciente(paciente_id)
-    return jsonify(guardias), 200
+    pagina = request.args.get("pagina", 1, type=int)
+    por_pagina = request.args.get("por_pagina", 10, type=int)
+    resultado = guardia_service.obtener_guardias_por_paciente(paciente_id, pagina, por_pagina)
+    return jsonify(resultado), 200
 
 @guardia_bp.route("/", methods=["POST"])
 @jwt_required()

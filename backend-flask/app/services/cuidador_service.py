@@ -1,12 +1,18 @@
 from app.extensions import db
 from app.models.cuidador import Cuidador
 
-def obtener_todos_cuidadores():
-    cuidadores = Cuidador.query.all()
+def obtener_todos_cuidadores(pagina=1, por_pagina=10):
+    paginacion = Cuidador.query.paginate(page=pagina, per_page=por_pagina, error_out=False)
     listado = []
-    for c in cuidadores:
+    for c in paginacion.items:
         listado.append(c.to_dict())
-    return listado
+    return {
+        "datos": listado,
+        "pagina": paginacion.page,
+        "por_pagina": paginacion.per_page,
+        "total": paginacion.total,
+        "paginas": paginacion.pages
+    }
 
 def obtener_cuidador_por_id(id):
     cuidador = Cuidador.query.get(id)
