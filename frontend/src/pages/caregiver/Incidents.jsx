@@ -34,18 +34,27 @@ export default function Incidents() {
   const severityVariant = useMemo(() => ({ Alta: 'error', Media: 'warning', Baja: 'info' }), [])
 
   return (
-    <CaregiverLayout title="Incidents">
-      <div className="p-8 space-y-6">
+    <CaregiverLayout title="Incidencias">
+      <div className="p-8 space-y-6 bg-[#f6f7f8] min-h-full">
         <PageHeader
-          title="Incident Reports"
-          description="Incidencias obtenidas de informes de guardia con prioridad estimada."
+          title="Reporte de Incidencias"
+          description="Revisa y gestiona incidencias de seguridad reportadas por el personal de cuidado."
           breadcrumb={[
-            { label: 'Caregiver', path: '/caregiver/dashboard' },
-            { label: 'Incidents' }
+            { label: 'Cuidador', path: '/caregiver/dashboard' },
+            { label: 'Incidencias' }
           ]}
         />
 
         {error && <ErrorState message={error} />}
+
+        <div className="bg-white border border-[#e7edf3] rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex gap-2 flex-wrap">
+            <button className="h-9 px-3 rounded-lg border border-[#e7edf3] text-sm">Todos los estados</button>
+            <button className="h-9 px-3 rounded-lg border border-[#e7edf3] text-sm">Todas las severidades</button>
+            <button className="h-9 px-3 rounded-lg border border-[#e7edf3] text-sm">Últimos 30 días</button>
+          </div>
+          <button className="h-9 px-4 rounded-lg bg-[#2b8cee] text-white text-sm font-semibold">Reportar incidencia</button>
+        </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <Card>

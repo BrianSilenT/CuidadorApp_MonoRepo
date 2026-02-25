@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import FamilyLayout from '../../components/layouts/FamilyLayout'
-import Card from '../../components/common/Card'
 import Input from '../../components/common/Input'
-import Button from '../../components/common/Button'
 import PageHeader from '../../components/common/PageHeader'
 import { LoadingState, EmptyState, ErrorState } from '../../components/common/DataState'
 import api, { unwrapList } from '../../services/api'
@@ -36,32 +34,43 @@ export default function History() {
   }
 
   return (
-    <FamilyLayout title="Care Service History">
-      <div className="p-8 space-y-6">
+    <FamilyLayout title="Historial de Servicios">
+      <div className="p-8 space-y-6 bg-[#f6f7f8] min-h-full">
         <PageHeader
-          title="Service History"
-          description="Historial de guardias por paciente, alineado al recurso backend `/guardias/paciente/{id}`."
+          title="Historial de Servicios"
+          description="Archivo completo de sesiones anteriores, asignaciones de cuidadores y reportes detallados."
           breadcrumb={[
-            { label: 'Family', path: '/family/dashboard' },
-            { label: 'History' }
+            { label: 'Familia', path: '/family/dashboard' },
+            { label: 'Historial' }
           ]}
         />
 
-        <Card>
-          <form onSubmit={loadHistory} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-            <Input
-              label="ID Paciente"
-              type="number"
-              name="pacienteId"
-              value={pacienteId}
-              onChange={(event) => setPacienteId(event.target.value)}
-              placeholder="Ej: 1"
-              required
-            />
-            <Button type="submit" variant="primary" icon="search">Buscar historial</Button>
-          </form>
+        <div className="bg-white border border-[#e7edf3] rounded-xl p-4 shadow-sm">
+          <div className="flex flex-col md:flex-row gap-3 justify-between items-end">
+            <form onSubmit={loadHistory} className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full md:w-auto">
+              <Input
+                label="ID de Paciente"
+                type="number"
+                name="pacienteId"
+                value={pacienteId}
+                onChange={(event) => setPacienteId(event.target.value)}
+                placeholder="Ej: 1"
+                required
+              />
+              <button type="submit" className="h-[42px] self-end rounded-lg bg-[#2b8cee] text-white px-4 text-sm font-bold hover:bg-blue-600 transition-colors">
+                Buscar
+              </button>
+            </form>
 
-          <div className="mt-4">
+            <div className="flex gap-2 w-full md:w-auto">
+              <button className="h-10 px-4 rounded-lg border border-[#e7edf3] text-sm font-semibold text-[#4c739a] hover:bg-[#f6f7f8]">Servicios Recientes</button>
+              <button className="h-10 px-4 rounded-lg border border-[#e7edf3] text-sm font-semibold text-[#4c739a] hover:bg-[#f6f7f8]">Exportar CSV</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white border border-[#e7edf3] rounded-xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
             {loading && <LoadingState label="Cargando historial..." />}
             {!loading && error && <ErrorState message={error} />}
             {!loading && !error && historyRows.length === 0 && (
@@ -69,31 +78,35 @@ export default function History() {
             )}
 
             {!loading && !error && historyRows.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px]">
+              <table className="w-full min-w-[900px]">
                   <thead>
-                    <tr className="border-b border-[#e7edf3]">
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Fecha</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Cuidador</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Horas</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Informe</th>
+                    <tr className="bg-[#f6f7f8] border-b border-[#e7edf3]">
+                      <th className="text-left py-4 px-4 text-xs font-bold uppercase tracking-wider text-[#4c739a]">Fecha</th>
+                      <th className="text-left py-4 px-4 text-xs font-bold uppercase tracking-wider text-[#4c739a]">Horario</th>
+                      <th className="text-left py-4 px-4 text-xs font-bold uppercase tracking-wider text-[#4c739a]">Paciente</th>
+                      <th className="text-left py-4 px-4 text-xs font-bold uppercase tracking-wider text-[#4c739a]">Cuidador</th>
+                      <th className="text-left py-4 px-4 text-xs font-bold uppercase tracking-wider text-[#4c739a]">Horas</th>
+                      <th className="text-right py-4 px-4 text-xs font-bold uppercase tracking-wider text-[#4c739a]">Acción</th>
                     </tr>
                   </thead>
                   <tbody>
                     {historyRows.map((item) => (
-                      <tr key={item.id} className="border-b border-[#e7edf3]">
-                        <td className="py-3 px-4 text-sm">{item.fecha || 'N/A'}</td>
-                        <td className="py-3 px-4 text-sm">{item.cuidador?.nombre || 'N/A'}</td>
-                        <td className="py-3 px-4 text-sm">{item.horasTrabajadas || 0}h</td>
-                        <td className="py-3 px-4 text-sm text-[#4c739a] max-w-[360px] truncate">{item.informe || 'Sin informe'}</td>
+                      <tr key={item.id} className="border-b border-[#e7edf3] hover:bg-[#f6f7f8] transition-colors">
+                        <td className="py-4 px-4 text-sm font-medium">{item.fecha || 'N/A'}</td>
+                        <td className="py-4 px-4 text-sm text-[#4c739a]">09:00 AM - 01:00 PM</td>
+                        <td className="py-4 px-4 text-sm text-[#0d141b]">{item.paciente?.nombre || 'Paciente N/A'}</td>
+                        <td className="py-4 px-4 text-sm text-[#4c739a]">{item.cuidador?.nombre || 'N/A'}</td>
+                        <td className="py-4 px-4 text-sm text-[#4c739a]">{item.horasTrabajadas || 0}h</td>
+                        <td className="py-4 px-4 text-right">
+                          <button className="text-sm font-semibold text-[#2b8cee] hover:text-blue-700">Ver reporte</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
             )}
           </div>
-        </Card>
+        </div>
       </div>
     </FamilyLayout>
   )

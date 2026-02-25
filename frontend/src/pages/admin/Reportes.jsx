@@ -30,7 +30,7 @@ export default function Reportes() {
         setResumen(resumenRes.data)
         setCuidadores(unwrapList(cuidadoresRes.data))
       } catch {
-        setError('No se pudieron cargar los reportes generales. Requiere permisos de admin.')
+        setError('No se pudieron cargar los reportes generales. Requiere permisos de administrador.')
       } finally {
         setLoading(false)
       }
@@ -66,12 +66,12 @@ export default function Reportes() {
 
   return (
     <AdminLayout title="Reportes">
-      <div className="p-8 space-y-6">
+      <div className="p-8 space-y-6 bg-[#f6f7f8] min-h-full">
         <PageHeader
           title="Reportes y métricas"
           description="Resumen de operación, horas trabajadas y pagos para administración."
           breadcrumb={[
-            { label: 'Admin', path: '/admin/dashboard' },
+            { label: 'Administración', path: '/admin/dashboard' },
             { label: 'Reportes' }
           ]}
         />
@@ -87,6 +87,12 @@ export default function Reportes() {
             <StatCard title="Horas Totales" value={`${resumen.guardias?.totalHoras || 0}h`} icon="hourglass_top" />
           </div>
         )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white border border-[#e7edf3] rounded-xl p-5"><p className="text-sm text-[#4c739a]">Reportes generados esta semana</p><p className="text-2xl font-bold">24</p></div>
+          <div className="bg-white border border-[#e7edf3] rounded-xl p-5"><p className="text-sm text-[#4c739a]">Descargas totales (Oct)</p><p className="text-2xl font-bold">156</p></div>
+          <div className="bg-white border border-[#e7edf3] rounded-xl p-5"><p className="text-sm text-[#4c739a]">Reportes programados</p><p className="text-2xl font-bold">3</p></div>
+        </div>
 
         {!loading && !error && (
           <Card>

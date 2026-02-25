@@ -25,7 +25,7 @@ export default function Payroll() {
         setPagos(unwrapList(pagosRes.data))
         setGuardias(unwrapList(guardiasRes.data))
       } catch {
-        setError('No fue posible cargar payroll completo. Se muestra estimación con guardias disponibles.')
+        setError('No fue posible cargar la nómina completa. Se muestra estimación con guardias disponibles.')
         try {
           const guardiasRes = await guardiaService.getAll()
           setGuardias(unwrapList(guardiasRes.data))
@@ -45,14 +45,14 @@ export default function Payroll() {
   const totalPagado = useMemo(() => pagos.filter((p) => p.confirmado).reduce((sum, p) => sum + (p.monto || 0), 0), [pagos])
 
   return (
-    <CaregiverLayout title="Payroll & Earnings">
-      <div className="p-8 space-y-6">
+    <CaregiverLayout title="Nómina e Ingresos">
+      <div className="p-8 space-y-6 bg-[#f6f7f8] min-h-full">
         <PageHeader
-          title="Payroll"
-          description="Vista de pagos confirmados y estimación por horas trabajadas."
+          title="Nómina"
+          description="Gestiona pagos, revisa comprobantes y sigue el historial financiero."
           breadcrumb={[
-            { label: 'Caregiver', path: '/caregiver/dashboard' },
-            { label: 'Payroll' }
+            { label: 'Cuidador', path: '/caregiver/dashboard' },
+            { label: 'Nómina' }
           ]}
         />
 
@@ -65,7 +65,11 @@ export default function Payroll() {
         )}
 
         <Card>
-          {loading && <LoadingState label="Cargando payroll..." />}
+          <div className="flex justify-end gap-2 mb-4">
+            <button className="h-9 px-4 rounded-lg border border-[#e7edf3] text-sm font-semibold">Imprimir resumen</button>
+            <button className="h-9 px-4 rounded-lg border border-[#e7edf3] text-sm font-semibold">Exportar CSV</button>
+          </div>
+          {loading && <LoadingState label="Cargando nómina..." />}
           {!loading && error && <ErrorState message={error} />}
           {!loading && pagos.length === 0 && <EmptyState label="No hay pagos visibles para este usuario. Verifica permisos del backend." />}
 

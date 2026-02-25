@@ -3,8 +3,15 @@ import StatCard from '../../components/common/StatCard'
 
 export default function AdminDashboard() {
   return (
-    <AdminLayout title="Dashboard Overview">
-      <div className="p-8 space-y-8">
+    <AdminLayout title="Resumen General">
+      <div className="p-8 space-y-8 bg-[#f6f7f8] min-h-full">
+          <div className="flex items-center justify-end gap-4">
+            <div className="flex items-center gap-2 h-10 bg-white border border-[#e7edf3] rounded-lg px-3 min-w-[320px]">
+              <span className="material-symbols-outlined text-[#4c739a] text-lg">search</span>
+              <input className="bg-transparent text-sm outline-none w-full" placeholder="Buscar pacientes, cuidadores o reportes..." />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard
               title="Cuidadores Activos"

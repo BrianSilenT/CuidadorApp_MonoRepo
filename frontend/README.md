@@ -1,74 +1,164 @@
-CuidadorApp Frontend
+CuidadorApp - Guía de arranque total + explicación técnica
 
-Esta es la parte visual de la aplicacion para gestionar cuidadores y pacientes.
+============================================================
+0) Arranque total (1 comando)
+============================================================
 
-    Usamos:
+Desde la raíz del repo:
 
-React 19 para crear las pantallas
-Vite para que cargue rapido
-SWC para compilar rapido el codigo
-React Router para cambiar entre paginas
-Axios para conectar con el servidor
-Fuentes de Google y iconos de Material
+PowerShell:
+.
+\scripts\start-all.ps1
 
-    Orden:
+Qué hace start-all.ps1:
+1. Valida rutas backend/frontend.
+2. Crea backend-flask/.env (si no existe) con SQLite local para demo.
+3. Crea backend-flask/.venv si no existe.
+4. Instala dependencias Python.
+5. Ejecuta migraciones SQL.
+6. Ejecuta seed de usuarios y datos de prueba.
+7. Crea frontend/.env.local (si no existe) apuntando al backend.
+8. Instala dependencias frontend.
+9. Levanta backend y frontend en terminales separadas.
 
-La carpeta src tiene todo el codigo
-En components estan los pedazos reutilizables como botones y tarjetas
-En pages estan las pantallas completas
-En services esta el codigo que habla con el servidor
-
-    paso a paso:
-
-Abre la terminal en la carpeta frontend y escribe:
-npm install
-
-    Como trabajar en desarrollo:
-
-Escribe en la terminal:
-npm run dev
-
-Abre tu navegador y ve a http://localhost:3000
-Veras la aplicacion funcionando. Si cambias algo en el codigo se actualiza solo.
-
-    Para hacer el build final:
-
-Cuando termines de programar y quieras subir a internet escribe:
-npm run build
-
-Esto crea una carpeta dist con todo optimizado y listo para subir al servidor.
-
-    Paginas que tiene la app:
-
-Inicio: es donde eliges si eres cuidador o familia
-Login de familias: para que entren los familiares
-Dashboard familias: pantalla principal de familias
-Login cuidadores: para que entren los cuidadores
-Dashboard cuidadores: pantalla principal de cuidadores
-
-    Paginas como admin: http://localhost:3000/admin/dashboard
-Admin dashboard: para el administrador
-Admin pacientes: donde se gestionan los pacientes
-Admin cuidadores: donde se gestionan los cuidadores
+Para detener ambos:
+.
+\scripts\stop-all.ps1
 
 
-    Componentes que puedes usar:
+============================================================
+1) Backend: qué debes saber
+============================================================
 
-Button: para hacer botones. Le pones variant primary o secondary, size md o lg, y un icono si quieres.
+Stack backend:
+- Flask + Flask-SQLAlchemy + Alembic + JWT.
 
-Card: hace tarjetas con bordes bonitos. Si le pones hover se ve mejor cuando pasas el mouse.
+Arquitectura backend (resumen):
+- app/routes: endpoints REST (auth, usuarios, cuidadores, pacientes, guardias, pagos, documentos, reportes).
+- app/services: lógica de negocio y validaciones.
+- app/models: modelos SQLAlchemy (tablas SQL).
+- app/extensions: init de db, migrate, bcrypt, jwt.
 
-Input: campos de texto para formularios. Le pones label para la etiqueta, type para el tipo, icon si quieres un iconito.
+Autenticación:
+- Login en /auth/login devuelve token JWT.
+- Frontend lo guarda y lo envía en Authorization: Bearer <token>.
 
-Badge: etiquetas de colores para estados. variant puede ser success, warning, error.
+Roles:
+- admin
+- cuidador
+- familia
 
-StatCard: tarjetas con numeros y estadisticas. Muestra titulo, valor, icono y si subio o bajo.
+Reglas de acceso importantes:
+- admin: CRUD completo principal.
+- familia: acceso a pacientes y consulta de guardias por paciente.
+- cuidador: acceso a guardias propias y documentos.
 
-    Como usar los servicios:
 
-En api.js estan las funciones para traer datos del servidor. Por ejemplo:
+============================================================
+2) Base de datos SQL usada
+============================================================
 
-Para traer todos los cuidadores: cuidadorService.getAll()
-Para crear uno nuevo: cuidadorService.create(datos)
-Lo mismo hay para pacientes, guardias y pagos.
-Por ahora el backend no esta conectado, esto es solo el frontend. 
+Por diseño del proyecto:
+- El backend está pensado para PostgreSQL (ver .env.example y README).
+
+En esta configuración local:
+- Se usa SQLite para demo rápida:
+  DATABASE_URL=sqlite:///cuidadorapp.db
+
+Qué cambia entre SQLite y PostgreSQL:
+- Modelo y migraciones son los mismos.
+- Solo cambia la cadena DATABASE_URL.
+
+Para pasar a PostgreSQL:
+1. Edita backend-flask/.env
+2. Reemplaza DATABASE_URL por:
+   postgresql://usuario:password@localhost:5432/cuidadorapp
+3. Ejecuta migraciones y seed otra vez.
+
+
+============================================================
+3) Qué es el seed
+============================================================
+
+Archivo:
+- backend-flask/scripts/seed_test_users.py
+
+Definición:
+- Seed = script para poblar la base con datos iniciales de prueba.
+
+Qué crea/actualiza el seed:
+- Usuario admin
+- Usuario cuidador
+- Usuario familia
+- Perfil de cuidador asociado
+- Paciente asociado
+- 1 guardia demo
+- 1 pago demo
+
+Importante:
+- Es idempotente: puedes ejecutarlo varias veces sin duplicar todo.
+
+Credenciales de prueba:
+- admin@cuidadorapp.com / Admin123!
+- cuidador@cuidadorapp.com / Cuidador123!
+- familia@cuidadorapp.com / Familia123!
+
+
+============================================================
+4) Frontend: cómo se construyó
+============================================================
+
+Stack frontend:
+- React + Vite + React Router + Axios + Tailwind.
+
+Cómo está organizado:
+- src/components/common: UI reutilizable (Button, Card, Input, Sidebar, etc.).
+- src/components/layouts: layout por rol (AdminLayout, CaregiverLayout, FamilyLayout).
+- src/pages: pantallas por rol.
+- src/services/api.js: cliente Axios y servicios por recurso.
+
+Decisiones de construcción:
+1. Router por rol en App.jsx.
+2. Sidebar por rol con ruta activa.
+3. Páginas con estados consistentes:
+   - loading
+   - error
+   - empty
+4. CRUD admin conectado a backend:
+   - pacientes
+   - cuidadores
+   - guardias
+   - pagos
+5. Login real contra backend con JWT y redirección por rol.
+
+
+============================================================
+5) Flujo recomendado de demo
+============================================================
+
+1. Ejecutar .\scripts\start-all.ps1
+2. Abrir frontend (http://127.0.0.1:5173)
+3. Login admin
+4. Probar CRUD:
+   - /admin/pacientes
+   - /admin/cuidadores
+   - /admin/guardias
+   - /admin/pagos
+5. Confirmar pago y revisar /admin/reportes
+
+
+============================================================
+6) Si algo falla
+============================================================
+
+Backend no levanta:
+- Revisa backend-flask/.env
+- Verifica migraciones: python -m flask db upgrade
+
+Frontend no conecta:
+- Revisa frontend/.env.local
+- Debe tener VITE_API_BASE_URL=http://127.0.0.1:5000
+
+Error de credenciales:
+- Reejecuta seed:
+  python scripts\seed_test_users.py

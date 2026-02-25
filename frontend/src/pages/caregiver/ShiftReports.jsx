@@ -23,14 +23,14 @@ export default function ShiftReports() {
   const totalHoras = useMemo(() => guardias.reduce((sum, item) => sum + (item.horasTrabajadas || 0), 0), [guardias])
 
   return (
-    <CaregiverLayout title="Shift Logging & Reports">
-      <div className="p-8 space-y-6">
+    <CaregiverLayout title="Registro y Reportes de Turnos">
+      <div className="p-8 space-y-6 bg-[#f6f7f8] min-h-full">
         <PageHeader
-          title="Shift Reports"
-          description="Resumen de horas trabajadas y detalle de turnos registrados."
+          title="Registro y Reportes de Turnos"
+          description="Controla horas activas y envía documentación diaria de cuidado."
           breadcrumb={[
-            { label: 'Caregiver', path: '/caregiver/dashboard' },
-            { label: 'Shift Reports' }
+            { label: 'Cuidador', path: '/caregiver/dashboard' },
+            { label: 'Reportes de Turno' }
           ]}
         />
 
@@ -43,6 +43,11 @@ export default function ShiftReports() {
         )}
 
         <Card>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button className="px-3 py-1.5 rounded-lg bg-[#2b8cee]/10 border border-[#2b8cee]/20 text-[#2b8cee] text-xs font-bold">Turnos Recientes</button>
+            <button className="px-3 py-1.5 rounded-lg border border-[#e7edf3] text-[#4c739a] text-xs font-bold">Calendario</button>
+            <button className="px-3 py-1.5 rounded-lg border border-[#e7edf3] text-[#4c739a] text-xs font-bold">Archivo de Reportes</button>
+          </div>
           {loading && <LoadingState label="Cargando reportes de turnos..." />}
           {!loading && error && <ErrorState message={error} />}
           {!loading && !error && guardias.length === 0 && <EmptyState label="Aún no hay turnos registrados." />}

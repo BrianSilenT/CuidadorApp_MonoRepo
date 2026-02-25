@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import FamilyLogin from './pages/family/Login'
 import FamilyDashboard from './pages/family/Dashboard'
-import FamilyRegister from './pages/family/Register'
 import FamilyMedicalRecords from './pages/family/MedicalRecords'
 import FamilyHistory from './pages/family/History'
 import FamilySupport from './pages/family/Support'
@@ -12,7 +11,6 @@ import CaregiverPatientLogs from './pages/caregiver/PatientLogs'
 import CaregiverIncidents from './pages/caregiver/Incidents'
 import CaregiverShiftReports from './pages/caregiver/ShiftReports'
 import CaregiverPayroll from './pages/caregiver/Payroll'
-import CaregiverOnboarding from './pages/caregiver/Onboarding'
 import AdminDashboard from './pages/admin/Dashboard'
 import Pacientes from './pages/admin/Pacientes'
 import Cuidadores from './pages/admin/Cuidadores'
@@ -27,7 +25,6 @@ function App() {
       
       <Route path="/family/login" element={<FamilyLogin />} />
       <Route path="/family/dashboard" element={<FamilyDashboard />} />
-      <Route path="/family/register" element={<FamilyRegister />} />
       <Route path="/family/medical-records" element={<FamilyMedicalRecords />} />
       <Route path="/family/history" element={<FamilyHistory />} />
       <Route path="/family/support" element={<FamilySupport />} />
@@ -38,7 +35,6 @@ function App() {
       <Route path="/caregiver/incidents" element={<CaregiverIncidents />} />
       <Route path="/caregiver/shift-reports" element={<CaregiverShiftReports />} />
       <Route path="/caregiver/payroll" element={<CaregiverPayroll />} />
-      <Route path="/caregiver/onboarding" element={<CaregiverOnboarding />} />
       <Route path="/caregiver/turnos" element={<Navigate to="/caregiver/shift-reports" replace />} />
       <Route path="/caregiver/pacientes" element={<Navigate to="/caregiver/patient-logs" replace />} />
       <Route path="/caregiver/reportes" element={<Navigate to="/caregiver/incidents" replace />} />

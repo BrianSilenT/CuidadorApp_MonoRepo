@@ -21,23 +21,29 @@ export default function PatientLogs() {
         setLogs(list)
         if (list.length > 0) setSelected(list[0])
       })
-      .catch(() => setError('No se pudieron cargar los patient logs.'))
+      .catch(() => setError('No se pudieron cargar los registros de pacientes.'))
       .finally(() => setLoading(false))
   }, [])
 
   return (
-    <CaregiverLayout title="Patient Logs">
-      <div className="p-8 space-y-6">
+    <CaregiverLayout title="Registros de Pacientes">
+      <div className="p-8 space-y-6 bg-[#f6f7f8] min-h-full">
         <PageHeader
-          title="Patient Logs"
-          description="Registros de guardia vinculados a pacientes e informe clínico."
+          title="Registros de Pacientes"
+          description="Revisa historial de pacientes y agrega notas de cuidado diarias."
           breadcrumb={[
-            { label: 'Caregiver', path: '/caregiver/dashboard' },
-            { label: 'Patient Logs' }
+            { label: 'Cuidador', path: '/caregiver/dashboard' },
+            { label: 'Registros' }
           ]}
         />
 
         {error && <ErrorState message={error} />}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white p-4 rounded-xl border border-[#cfdbe7] shadow-sm"><p className="text-xs font-semibold text-[#4c739a] uppercase">Total Pacientes</p><p className="text-2xl font-bold">{logs.length}</p></div>
+          <div className="bg-white p-4 rounded-xl border border-[#cfdbe7] shadow-sm"><p className="text-xs font-semibold text-[#4c739a] uppercase">Actualizaciones Hoy</p><p className="text-2xl font-bold">{Math.min(12, logs.length)}</p></div>
+          <div className="bg-white p-4 rounded-xl border border-[#cfdbe7] shadow-sm"><p className="text-xs font-semibold text-[#4c739a] uppercase">Estado Crítico</p><p className="text-2xl font-bold">{logs.filter((l) => (l.horasTrabajadas || 0) >= 8).length}</p></div>
+        </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <Card>

@@ -6,3 +6,8 @@
 
 # Ignorar backend Java
 backend/
+
+# PID files de scripts
+.backend.pid
+.frontend.pid
+scripts/pids/

@@ -11,7 +11,7 @@ export default function FamilyLogin() {
               <path d="M42.1739 20.1739L27.8261 5.82609C29.1366 7.13663 28.3989 10.1876 26.2002 13.7654C24.8538 15.9564 22.9595 18.3449 20.6522 20.6522C18.3449 22.9595 15.9564 24.8538 13.7654 26.2002C10.1876 28.3989 7.13663 29.1366 5.82609 27.8261L20.1739 42.1739C21.4845 43.4845 24.5355 42.7467 28.1133 40.548C30.3042 39.2016 32.6927 37.3073 35 35C37.3073 32.6927 39.2016 30.3042 40.548 28.1133C42.7467 24.5355 43.4845 21.4845 42.1739 20.1739Z" fill="currentColor"></path>
             </svg>
           </div>
-          <h2 className="text-lg font-bold leading-tight tracking-tight">CarePortal</h2>
+          <h2 className="text-lg font-bold leading-tight tracking-tight">CuidadorApp</h2>
         </Link>
         <button className="flex min-w-[84px] items-center justify-center rounded-lg h-10 px-4 bg-[#2b8cee] text-white text-sm font-bold">
           Solicitar Cuidador
@@ -32,7 +32,7 @@ export default function FamilyLogin() {
               El cuidado de su familia, a un clic de distancia.
             </h1>
             <p className="text-[#4c739a] text-lg font-normal leading-relaxed pb-6">
-              Bienvenido al Portal Familiar. Acceda de forma segura a reportes de cuidado, programe visitas y manténgase conectado con el equipo de atención de sus seres queridos.
+              Bienvenido a CuidadorApp Familiar. Acceda de forma segura a reportes de cuidado, programe visitas y manténgase conectado con el equipo de atención de sus seres queridos.
             </p>
             <div className="flex flex-col gap-4 mt-2">
               <div className="flex items-center gap-3 text-[#0d141b]">
