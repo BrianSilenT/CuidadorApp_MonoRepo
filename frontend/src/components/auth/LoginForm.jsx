@@ -135,19 +135,21 @@ export default function LoginForm({ role }) {
         </Button>
       </form>
 
-      <div className="mt-8 pt-6 border-t border-[#e7edf3]">
-        <p className="text-center text-sm text-[#4c739a] mb-4">¿Nuevo en CuidadorApp?</p>
-        <div className="grid grid-cols-2 gap-3">
-          <button className="flex flex-col items-center justify-center p-3 rounded-lg border border-[#cfdbe7] hover:bg-slate-50 transition-colors">
-            <span className="material-symbols-outlined text-[#2b8cee] mb-1">person_add</span>
-            <span className="text-xs font-bold text-[#0d141b] uppercase tracking-wider">Registrarse</span>
-          </button>
-          <button className="flex flex-col items-center justify-center p-3 rounded-lg border border-[#cfdbe7] hover:bg-slate-50 transition-colors">
-            <span className="material-symbols-outlined text-[#2b8cee] mb-1">description</span>
-            <span className="text-xs font-bold text-[#0d141b] uppercase tracking-wider">Ver Reportes</span>
-          </button>
+      {role !== 'admin' && (
+        <div className="mt-8 pt-6 border-t border-[#e7edf3]">
+          <p className="text-center text-sm text-[#4c739a] mb-4">¿Nuevo en CuidadorApp?</p>
+          <div className="flex justify-center">
+            <button 
+              type="button"
+              onClick={() => navigate(role === 'cuidador' ? '/caregiver/register' : '/family/register')}
+              className="flex flex-col items-center justify-center p-3 px-8 rounded-lg border border-[#cfdbe7] hover:bg-slate-50 transition-colors w-full max-w-[200px]"
+            >
+              <span className="material-symbols-outlined text-[#2b8cee] mb-1">person_add</span>
+              <span className="text-xs font-bold text-[#0d141b] uppercase tracking-wider">Registrarse</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

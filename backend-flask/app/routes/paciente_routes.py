@@ -7,7 +7,7 @@ paciente_bp = Blueprint("pacientes", __name__, url_prefix="/pacientes")
 
 @paciente_bp.route("/", methods=["GET"])
 @jwt_required()
-@rol_requerido("admin", "familia")
+@rol_requerido("admin", "cuidador", "familia")
 def obtener_todos():
     pagina = request.args.get("pagina", 1, type=int)
     por_pagina = request.args.get("por_pagina", 10, type=int)
@@ -16,7 +16,7 @@ def obtener_todos():
 
 @paciente_bp.route("/<int:id>", methods=["GET"])
 @jwt_required()
-@rol_requerido("admin", "familia")
+@rol_requerido("admin", "cuidador", "familia")
 def obtener_por_id(id):
     paciente = paciente_service.obtener_paciente_por_id(id)
     if paciente:

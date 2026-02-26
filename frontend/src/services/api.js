@@ -4,6 +4,25 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api'
 })
 
+const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
+
+const toCamelCase = (text) => text.replace(/_([a-z])/g, (_, char) => char.toUpperCase())
+
+const camelize = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(camelize)
+  }
+
+  if (!isPlainObject(value)) {
+    return value
+  }
+
+  return Object.entries(value).reduce((accumulator, [key, nestedValue]) => {
+    accumulator[toCamelCase(key)] = camelize(nestedValue)
+    return accumulator
+  }, {})
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
@@ -11,6 +30,16 @@ api.interceptors.request.use((config) => {
   }
   return config
 })
+
+api.interceptors.response.use(
+  (response) => {
+    if (response?.data && isPlainObject(response.data)) {
+      response.data = camelize(response.data)
+    }
+    return response
+  },
+  (error) => Promise.reject(error)
+)
 
 const unwrapList = (responseData) => {
   if (Array.isArray(responseData)) return responseData
@@ -31,11 +60,30 @@ export const pacienteService = createService('pacientes')
 export const guardiaService = createService('guardias')
 export const pagoService = createService('pagos')
 export const usuarioService = createService('usuarios')
+export const incidenteService = createService('incidentes')
+export const logPacienteService = createService('logs-pacientes')
 
 export const authService = {
   login: (data) => api.post('/auth/login', data),
   logout: () => api.post('/auth/logout'),
   changePassword: (data) => api.put('/auth/cambiar-password', data)
+}
+
+export const sessionService = {
+  getToken: () => localStorage.getItem('token') || '',
+  getRole: () => localStorage.getItem('userRole') || '',
+  getUser: () => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}')
+    } catch {
+      return {}
+    }
+  },
+  clear: () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('userRole')
+    localStorage.removeItem('user')
+  }
 }
 
 export const reporteService = {

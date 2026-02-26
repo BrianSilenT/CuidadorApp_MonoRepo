@@ -10,7 +10,7 @@ guardia_bp = Blueprint("guardias", __name__, url_prefix="/guardias")
 
 @guardia_bp.route("/", methods=["GET"])
 @jwt_required()
-@rol_requerido("admin", "cuidador")
+@rol_requerido("admin", "cuidador", "familia")
 def obtener_todas():
     pagina = request.args.get("pagina", 1, type=int)
     por_pagina = request.args.get("por_pagina", 10, type=int)
@@ -19,7 +19,7 @@ def obtener_todas():
 
 @guardia_bp.route("/<int:id>", methods=["GET"])
 @jwt_required()
-@rol_requerido("admin", "cuidador")
+@rol_requerido("admin", "cuidador", "familia")
 def obtener_por_id(id):
     guardia = guardia_service.obtener_guardia_por_id(id)
     if guardia:
@@ -28,7 +28,7 @@ def obtener_por_id(id):
 
 @guardia_bp.route("/cuidador/<int:cuidador_id>", methods=["GET"])
 @jwt_required()
-@rol_requerido("admin", "cuidador")
+@rol_requerido("admin", "cuidador", "familia")
 def obtener_por_cuidador(cuidador_id):
     pagina = request.args.get("pagina", 1, type=int)
     por_pagina = request.args.get("por_pagina", 10, type=int)
@@ -37,7 +37,7 @@ def obtener_por_cuidador(cuidador_id):
 
 @guardia_bp.route("/paciente/<int:paciente_id>", methods=["GET"])
 @jwt_required()
-@rol_requerido("admin", "familia")
+@rol_requerido("admin", "cuidador", "familia")
 def obtener_por_paciente(paciente_id):
     pagina = request.args.get("pagina", 1, type=int)
     por_pagina = request.args.get("por_pagina", 10, type=int)

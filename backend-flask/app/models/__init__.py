@@ -4,3 +4,5 @@ from app.models.paciente import Paciente
 from app.models.guardia import Guardia
 from app.models.pago import Pago
 from app.models.documento import Documento
+from app.models.incidente import Incidente
+from app.models.log_paciente import LogPaciente

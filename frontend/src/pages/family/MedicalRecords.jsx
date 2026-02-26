@@ -1,27 +1,87 @@
 import { useEffect, useState } from 'react'
 import FamilyLayout from '../../components/layouts/FamilyLayout'
+import Button from '../../components/common/Button'
+import Input from '../../components/common/Input'
 import PageHeader from '../../components/common/PageHeader'
 import { LoadingState, EmptyState, ErrorState } from '../../components/common/DataState'
-import { pacienteService, unwrapList } from '../../services/api'
+import { pacienteService } from '../../services/api'
+import useResourceList from '../../hooks/useResourceList'
 
 export default function MedicalRecords() {
-  const [pacientes, setPacientes] = useState([])
   const [selected, setSelected] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [formData, setFormData] = useState({ nombre: '', direccion: '', contactoFamilia: '' })
+
+  const {
+    items: pacientes,
+    loading,
+    error,
+    setError,
+    refresh: loadPacientes
+  } = useResourceList({
+    fetcher: pacienteService.getAll,
+    errorMessage: 'No se pudieron cargar los registros médicos. Requiere sesión de familia.'
+  })
 
   useEffect(() => {
-    setLoading(true)
+    setSelected((prev) => prev || pacientes[0] || null)
+  }, [pacientes])
+
+  const openCreate = () => {
+    setEditingId(null)
+    setFormData({ nombre: '', direccion: '', contactoFamilia: '' })
+    setShowForm(true)
+  }
+
+  const openEdit = (paciente) => {
+    setEditingId(paciente.id)
+    setFormData({
+      nombre: paciente.nombre || '',
+      direccion: paciente.direccion || '',
+      contactoFamilia: paciente.contactoFamilia || ''
+    })
+    setShowForm(true)
+  }
+
+  const onChange = (event) => {
+    const { name, value } = event.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const onSubmit = async (event) => {
+    event.preventDefault()
+    if (!formData.nombre.trim()) {
+      setError('El nombre del paciente es obligatorio.')
+      return
+    }
+
+    setSaving(true)
     setError('')
-    pacienteService.getAll()
-      .then((res) => {
-        const rows = unwrapList(res.data)
-        setPacientes(rows)
-        if (rows.length > 0) setSelected(rows[0])
-      })
-      .catch(() => setError('No se pudieron cargar los registros médicos. Requiere sesión de familia.'))
-      .finally(() => setLoading(false))
-  }, [])
+    try {
+      const payload = {
+        nombre: formData.nombre,
+        direccion: formData.direccion,
+        contacto_familia: formData.contactoFamilia
+      }
+
+      if (editingId) {
+        await pacienteService.update(editingId, payload)
+      } else {
+        await pacienteService.create(payload)
+      }
+
+      setShowForm(false)
+      setEditingId(null)
+      setFormData({ nombre: '', direccion: '', contactoFamilia: '' })
+      await loadPacientes()
+    } catch {
+      setError('No se pudo guardar la ficha del paciente.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <FamilyLayout title="Historial Médico">
@@ -33,6 +93,9 @@ export default function MedicalRecords() {
             { label: 'Familia', path: '/family/dashboard' },
             { label: 'Historial Médico' }
           ]}
+          actionLabel="Nuevo Paciente"
+          actionIcon="add"
+          onAction={openCreate}
         />
 
         {error && <ErrorState message={error} />}
@@ -70,56 +133,49 @@ export default function MedicalRecords() {
                     <p className="text-sm text-[#4c739a]">ID Paciente: #{selected.id}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button className="h-10 px-4 rounded-lg border border-[#e7edf3] text-sm font-bold hover:bg-[#f6f7f8]">Imprimir reporte</button>
-                    <button className="h-10 px-4 rounded-lg bg-[#2b8cee] text-white text-sm font-bold hover:bg-blue-600">Editar ficha</button>
+                    <button type="button" className="h-10 px-4 rounded-lg border border-[#e7edf3] text-sm font-bold hover:bg-[#f6f7f8]" onClick={() => window.print()}>Imprimir reporte</button>
+                    <button type="button" className="h-10 px-4 rounded-lg bg-[#2b8cee] text-white text-sm font-bold hover:bg-blue-600" onClick={() => openEdit(selected)}>Editar ficha</button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    { label: 'Tipo de Sangre', value: 'O+' },
-                    { label: 'Altura', value: '178 cm' },
-                    { label: 'Peso', value: '75 kg' },
-                    { label: 'Edad', value: '68' }
-                  ].map((item) => (
-                    <div key={item.label} className="rounded-xl border border-[#e7edf3] bg-[#f6f7f8] p-4">
-                      <p className="text-xs text-[#4c739a] font-semibold uppercase tracking-wider">{item.label}</p>
-                      <p className="text-xl font-bold mt-1">{item.value}</p>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-[#e7edf3] bg-[#f6f7f8] p-4">
+                    <p className="text-xs text-[#4c739a] font-semibold uppercase tracking-wider">Dirección</p>
+                    <p className="text-base font-bold mt-1">{selected.direccion || 'Sin dirección registrada'}</p>
+                  </div>
+                  <div className="rounded-xl border border-[#e7edf3] bg-[#f6f7f8] p-4">
+                    <p className="text-xs text-[#4c739a] font-semibold uppercase tracking-wider">Contacto familiar</p>
+                    <p className="text-base font-bold mt-1">{selected.contactoFamilia || 'Sin contacto registrado'}</p>
+                  </div>
+                  <div className="rounded-xl border border-[#e7edf3] bg-[#f6f7f8] p-4">
+                    <p className="text-xs text-[#4c739a] font-semibold uppercase tracking-wider">Última actualización</p>
+                    <p className="text-base font-bold mt-1">Base de datos en línea</p>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div className="rounded-xl border border-[#e7edf3] p-4">
-                    <p className="text-sm font-bold mb-3">Alergias</p>
-                    <ul className="space-y-2 text-sm text-[#4c739a]">
-                      <li>• Maní (Severa)</li>
-                      <li>• Penicilina (Sarpullido leve)</li>
-                      <li>• Polen (Estacional)</li>
-                    </ul>
-                  </div>
-                  <div className="rounded-xl border border-[#e7edf3] overflow-hidden lg:col-span-2">
-                    <table className="w-full min-w-[520px] text-sm">
-                      <thead className="bg-[#f6f7f8]">
-                        <tr>
-                          <th className="text-left py-3 px-4 font-bold text-[#4c739a]">Medicamento</th>
-                          <th className="text-left py-3 px-4 font-bold text-[#4c739a]">Dosis</th>
-                          <th className="text-left py-3 px-4 font-bold text-[#4c739a]">Frecuencia</th>
-                          <th className="text-left py-3 px-4 font-bold text-[#4c739a]">Estado</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-t border-[#e7edf3]"><td className="py-3 px-4">Lisinopril</td><td className="py-3 px-4">10mg</td><td className="py-3 px-4">Diaria</td><td className="py-3 px-4 text-emerald-700">Activa</td></tr>
-                        <tr className="border-t border-[#e7edf3]"><td className="py-3 px-4">Metformin</td><td className="py-3 px-4">500mg</td><td className="py-3 px-4">2 veces al día</td><td className="py-3 px-4 text-emerald-700">Activa</td></tr>
-                        <tr className="border-t border-[#e7edf3]"><td className="py-3 px-4">Atorvastatin</td><td className="py-3 px-4">20mg</td><td className="py-3 px-4">Noche</td><td className="py-3 px-4 text-amber-700">Revisión</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
+                <div className="rounded-xl border border-[#e7edf3] p-4 bg-[#f6f7f8]">
+                  <p className="text-sm font-semibold mb-2">Observaciones</p>
+                  <p className="text-sm text-[#4c739a]">La ficha médica muestra información disponible en el modelo actual de pacientes. Puedes actualizar nombre, dirección y contacto familiar desde editar ficha.</p>
                 </div>
               </div>
             )}
           </div>
         </div>
+
+        {showForm && (
+          <div className="bg-white rounded-xl border border-[#e7edf3] p-6 shadow-sm">
+            <h4 className="text-lg font-bold mb-4">{editingId ? 'Editar ficha de paciente' : 'Nueva ficha de paciente'}</h4>
+            <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input label="Nombre" name="nombre" value={formData.nombre} onChange={onChange} required />
+              <Input label="Dirección" name="direccion" value={formData.direccion} onChange={onChange} />
+              <Input label="Contacto familiar" name="contactoFamilia" value={formData.contactoFamilia} onChange={onChange} />
+              <div className="md:col-span-3 flex gap-2">
+                <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button>
+                <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
     </FamilyLayout>
   )

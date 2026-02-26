@@ -1,17 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/layouts/AdminLayout'
 import Card from '../../components/common/Card'
 import Button from '../../components/common/Button'
 import Badge from '../../components/common/Badge'
 import Input from '../../components/common/Input'
+import DualPanel from '../../components/common/DualPanel'
 import PageHeader from '../../components/common/PageHeader'
 import { LoadingState, EmptyState, ErrorState } from '../../components/common/DataState'
-import { pacienteService, unwrapList } from '../../services/api'
+import { pacienteService } from '../../services/api'
+import useResourceList from '../../hooks/useResourceList'
 
 export default function Pacientes() {
-  const [pacientes, setPacientes] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [selectedPaciente, setSelectedPaciente] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -21,27 +20,22 @@ export default function Pacientes() {
     direccion: '',
     contactoFamilia: ''
   })
+  const [search, setSearch] = useState('')
 
-  const loadPacientes = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await pacienteService.getAll()
-      const rows = unwrapList(res.data)
-      setPacientes(rows)
-      if (rows.length > 0 && !selectedPaciente) {
-        setSelectedPaciente(rows[0])
-      }
-    } catch {
-      setError('No se pudieron cargar los pacientes. Verifica sesión o conexión con backend.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const {
+    items: pacientes,
+    loading,
+    error,
+    setError,
+    refresh: loadPacientes
+  } = useResourceList({
+    fetcher: pacienteService.getAll,
+    errorMessage: 'No se pudieron cargar los pacientes. Verifica sesión o conexión con backend.'
+  })
 
   useEffect(() => {
-    loadPacientes()
-  }, [])
+    setSelectedPaciente((prev) => prev || pacientes[0] || null)
+  }, [pacientes])
 
   const onChange = (event) => {
     const { name, value } = event.target
@@ -116,6 +110,11 @@ export default function Pacientes() {
     }
   }
 
+  const filteredPacientes = pacientes.filter((paciente) => {
+    const target = `${paciente.id} ${paciente.nombre || ''} ${paciente.direccion || ''} ${paciente.contactoFamilia || ''}`.toLowerCase()
+    return target.includes(search.trim().toLowerCase())
+  })
+
   return (
     <AdminLayout title="Gestión de Pacientes">
       <div className="p-8 space-y-6 bg-[#f6f7f8] min-h-full">
@@ -135,11 +134,12 @@ export default function Pacientes() {
           <div className="flex flex-col md:flex-row gap-3 justify-between items-center">
             <div className="relative w-full md:w-96">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-              <input className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-sm" placeholder="Buscar por nombre, ID o cuidador..." />
-            </div>
-            <div className="flex gap-2">
-              <button className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium">Todos los estados</button>
-              <button className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium">Filtrar</button>
+              <input
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-sm"
+                placeholder="Buscar por nombre, ID o contacto..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
             </div>
           </div>
         </div>
@@ -147,11 +147,11 @@ export default function Pacientes() {
         <Card>
           {loading && <LoadingState label="Cargando pacientes..." />}
           {!loading && error && <ErrorState message={error} />}
-          {!loading && !error && pacientes.length === 0 && (
+          {!loading && !error && filteredPacientes.length === 0 && (
             <EmptyState label="No hay pacientes registrados todavía." />
           )}
 
-          {!loading && !error && pacientes.length > 0 && (
+          {!loading && !error && filteredPacientes.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[680px]">
                 <thead>
@@ -164,7 +164,7 @@ export default function Pacientes() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pacientes.map((paciente) => (
+                  {filteredPacientes.map((paciente) => (
                     <tr key={paciente.id} className="border-b border-[#e7edf3] hover:bg-[#f6f7f8]">
                       <td className="py-3 px-4 text-sm font-semibold">{paciente.nombre}</td>
                       <td className="py-3 px-4 text-sm text-[#4c739a]">{paciente.direccion || 'Sin dirección'}</td>
@@ -187,36 +187,34 @@ export default function Pacientes() {
           )}
         </Card>
 
-        {(showForm || selectedPaciente) && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {showForm && (
-              <Card>
-                <h4 className="text-lg font-bold mb-4">{editingId ? 'Editar Paciente' : 'Nuevo Paciente'}</h4>
-                <form onSubmit={onSubmit} className="space-y-4">
-                  <Input label="Nombre" name="nombre" value={formData.nombre} onChange={onChange} required />
-                  <Input label="Dirección" name="direccion" value={formData.direccion} onChange={onChange} />
-                  <Input label="Contacto familiar" name="contactoFamilia" value={formData.contactoFamilia} onChange={onChange} />
-                  <div className="flex gap-2">
-                    <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button>
-                    <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
-                  </div>
-                </form>
-              </Card>
-            )}
-
-            {selectedPaciente && (
-              <Card>
-                <h4 className="text-lg font-bold mb-4">Detalle del paciente</h4>
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-semibold">Nombre:</span> {selectedPaciente.nombre}</p>
-                  <p><span className="font-semibold">Dirección:</span> {selectedPaciente.direccion || 'Sin dirección'}</p>
-                  <p><span className="font-semibold">Contacto familiar:</span> {selectedPaciente.contactoFamilia || 'Sin contacto'}</p>
-                  <p><span className="font-semibold">ID:</span> {selectedPaciente.id}</p>
+        <DualPanel
+          show={showForm || selectedPaciente}
+          left={showForm && (
+            <Card>
+              <h4 className="text-lg font-bold mb-4">{editingId ? 'Editar Paciente' : 'Nuevo Paciente'}</h4>
+              <form onSubmit={onSubmit} className="space-y-4">
+                <Input label="Nombre" name="nombre" value={formData.nombre} onChange={onChange} required />
+                <Input label="Dirección" name="direccion" value={formData.direccion} onChange={onChange} />
+                <Input label="Contacto familiar" name="contactoFamilia" value={formData.contactoFamilia} onChange={onChange} />
+                <div className="flex gap-2">
+                  <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button>
+                  <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
                 </div>
-              </Card>
-            )}
-          </div>
-        )}
+              </form>
+            </Card>
+          )}
+          right={selectedPaciente && (
+            <Card>
+              <h4 className="text-lg font-bold mb-4">Detalle del paciente</h4>
+              <div className="space-y-2 text-sm">
+                <p><span className="font-semibold">Nombre:</span> {selectedPaciente.nombre}</p>
+                <p><span className="font-semibold">Dirección:</span> {selectedPaciente.direccion || 'Sin dirección'}</p>
+                <p><span className="font-semibold">Contacto familiar:</span> {selectedPaciente.contactoFamilia || 'Sin contacto'}</p>
+                <p><span className="font-semibold">ID:</span> {selectedPaciente.id}</p>
+              </div>
+            </Card>
+          )}
+        />
       </div>
     </AdminLayout>
   )

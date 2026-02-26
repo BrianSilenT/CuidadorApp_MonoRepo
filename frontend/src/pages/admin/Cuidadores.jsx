@@ -4,14 +4,13 @@ import Card from '../../components/common/Card'
 import Button from '../../components/common/Button'
 import Badge from '../../components/common/Badge'
 import Input from '../../components/common/Input'
+import DualPanel from '../../components/common/DualPanel'
 import PageHeader from '../../components/common/PageHeader'
 import { LoadingState, EmptyState, ErrorState } from '../../components/common/DataState'
-import { cuidadorService, unwrapList } from '../../services/api'
+import { cuidadorService } from '../../services/api'
+import useResourceList from '../../hooks/useResourceList'
 
 export default function Cuidadores() {
-  const [cuidadores, setCuidadores] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -23,26 +22,20 @@ export default function Cuidadores() {
     activo: true
   })
 
-  const loadCuidadores = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await cuidadorService.getAll()
-      const rows = unwrapList(res.data)
-      setCuidadores(rows)
-      if (rows.length > 0 && !selectedCuidador) {
-        setSelectedCuidador(rows[0])
-      }
-    } catch {
-      setError('No se pudieron cargar los cuidadores. Verifica permisos de administrador.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const {
+    items: cuidadores,
+    loading,
+    error,
+    setError,
+    refresh: loadCuidadores
+  } = useResourceList({
+    fetcher: cuidadorService.getAll,
+    errorMessage: 'No se pudieron cargar los cuidadores. Verifica permisos de administrador.'
+  })
 
   useEffect(() => {
-    loadCuidadores()
-  }, [])
+    setSelectedCuidador((prev) => prev || cuidadores[0] || null)
+  }, [cuidadores])
 
   const onChange = (event) => {
     const { name, value, type, checked } = event.target
@@ -141,7 +134,7 @@ export default function Cuidadores() {
           <div className="bg-white p-4 rounded-xl border border-[#e7edf3]"><p className="text-sm text-[#4c739a]">Personal total</p><p className="text-xl font-bold">{cuidadores.length}</p></div>
           <div className="bg-white p-4 rounded-xl border border-[#e7edf3]"><p className="text-sm text-[#4c739a]">Verificados</p><p className="text-xl font-bold">{cuidadores.filter((c) => c.activo).length}</p></div>
           <div className="bg-white p-4 rounded-xl border border-[#e7edf3]"><p className="text-sm text-[#4c739a]">Pendiente revisión</p><p className="text-xl font-bold">{cuidadores.filter((c) => !c.activo).length}</p></div>
-          <div className="bg-white p-4 rounded-xl border border-[#e7edf3]"><p className="text-sm text-[#4c739a]">En turno ahora</p><p className="text-xl font-bold">{Math.min(cuidadores.length, 36)}</p></div>
+          <div className="bg-white p-4 rounded-xl border border-[#e7edf3]"><p className="text-sm text-[#4c739a]">Con teléfono</p><p className="text-xl font-bold">{cuidadores.filter((c) => Boolean(c.telefono)).length}</p></div>
         </div>
 
         <Card>
@@ -189,49 +182,47 @@ export default function Cuidadores() {
           )}
         </Card>
 
-        {(showForm || selectedCuidador) && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {showForm && (
-              <Card>
-                <h4 className="text-lg font-bold mb-4">{editingId ? 'Editar Cuidador' : 'Nuevo Cuidador'}</h4>
-                <form onSubmit={onSubmit} className="space-y-4">
-                  <Input label="Nombre" name="nombre" value={formData.nombre} onChange={onChange} required />
-                  <Input label="Documento" name="documento" value={formData.documento} onChange={onChange} required />
-                  <Input label="Teléfono" name="telefono" value={formData.telefono} onChange={onChange} />
+        <DualPanel
+          show={showForm || selectedCuidador}
+          left={showForm && (
+            <Card>
+              <h4 className="text-lg font-bold mb-4">{editingId ? 'Editar Cuidador' : 'Nuevo Cuidador'}</h4>
+              <form onSubmit={onSubmit} className="space-y-4">
+                <Input label="Nombre" name="nombre" value={formData.nombre} onChange={onChange} required />
+                <Input label="Documento" name="documento" value={formData.documento} onChange={onChange} required />
+                <Input label="Teléfono" name="telefono" value={formData.telefono} onChange={onChange} />
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="activo"
-                      type="checkbox"
-                      name="activo"
-                      checked={formData.activo}
-                      onChange={onChange}
-                    />
-                    <label htmlFor="activo" className="text-sm">Activo</label>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button>
-                    <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
-                  </div>
-                </form>
-              </Card>
-            )}
-
-            {selectedCuidador && (
-              <Card>
-                <h4 className="text-lg font-bold mb-4">Detalle del cuidador</h4>
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-semibold">Nombre:</span> {selectedCuidador.nombre}</p>
-                  <p><span className="font-semibold">Documento:</span> {selectedCuidador.documento || 'Sin documento'}</p>
-                  <p><span className="font-semibold">Teléfono:</span> {selectedCuidador.telefono || 'Sin teléfono'}</p>
-                  <p><span className="font-semibold">Estado:</span> {selectedCuidador.activo ? 'Activo' : 'Inactivo'}</p>
-                  <p><span className="font-semibold">ID:</span> {selectedCuidador.id}</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="activo"
+                    type="checkbox"
+                    name="activo"
+                    checked={formData.activo}
+                    onChange={onChange}
+                  />
+                  <label htmlFor="activo" className="text-sm">Activo</label>
                 </div>
-              </Card>
-            )}
-          </div>
-        )}
+
+                <div className="flex gap-2">
+                  <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button>
+                  <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
+                </div>
+              </form>
+            </Card>
+          )}
+          right={selectedCuidador && (
+            <Card>
+              <h4 className="text-lg font-bold mb-4">Detalle del cuidador</h4>
+              <div className="space-y-2 text-sm">
+                <p><span className="font-semibold">Nombre:</span> {selectedCuidador.nombre}</p>
+                <p><span className="font-semibold">Documento:</span> {selectedCuidador.documento || 'Sin documento'}</p>
+                <p><span className="font-semibold">Teléfono:</span> {selectedCuidador.telefono || 'Sin teléfono'}</p>
+                <p><span className="font-semibold">Estado:</span> {selectedCuidador.activo ? 'Activo' : 'Inactivo'}</p>
+                <p><span className="font-semibold">ID:</span> {selectedCuidador.id}</p>
+              </div>
+            </Card>
+          )}
+        />
       </div>
     </AdminLayout>
   )

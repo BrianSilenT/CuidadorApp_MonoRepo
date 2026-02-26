@@ -1,164 +1,52 @@
-CuidadorApp - Guía de arranque total + explicación técnica
+CuidadorApp - Guía de arranque y uso
 
 ============================================================
 0) Arranque total (1 comando)
 ============================================================
 
-Desde la raíz del repo:
-
-PowerShell:
-.
-\scripts\start-all.ps1
-
-Qué hace start-all.ps1:
-1. Valida rutas backend/frontend.
-2. Crea backend-flask/.env (si no existe) con SQLite local para demo.
-3. Crea backend-flask/.venv si no existe.
-4. Instala dependencias Python.
-5. Ejecuta migraciones SQL.
-6. Ejecuta seed de usuarios y datos de prueba.
-7. Crea frontend/.env.local (si no existe) apuntando al backend.
-8. Instala dependencias frontend.
-9. Levanta backend y frontend en terminales separadas.
+Desde la raíz del repo en PowerShell:
+.\scripts\start-all.ps1
 
 Para detener ambos:
-.
-\scripts\stop-all.ps1
-
+.\scripts\stop-all.ps1
 
 ============================================================
-1) Backend: qué debes saber
+1) Credenciales de prueba y Accesos
 ============================================================
 
-Stack backend:
-- Flask + Flask-SQLAlchemy + Alembic + JWT.
+La aplicación cuenta con 3 tipos de usuarios. Usa estas credenciales para probar cada panel:
 
-Arquitectura backend (resumen):
-- app/routes: endpoints REST (auth, usuarios, cuidadores, pacientes, guardias, pagos, documentos, reportes).
-- app/services: lógica de negocio y validaciones.
-- app/models: modelos SQLAlchemy (tablas SQL).
-- app/extensions: init de db, migrate, bcrypt, jwt.
+| Rol | URL de Login | Email | Contraseña |
+|-----|--------------|-------|------------|
+| **Admin** | `http://localhost:3000/admin/login` | `admin@cuidadorapp.com` | `admin123` |
+| **Cuidador** | `http://localhost:3000/caregiver/login` | `cuidador@cuidadorapp.com` | `cuidador123` |
+| **Familia** | `http://localhost:3000/family/login` | `familia@cuidadorapp.com` | `familia123` |
 
-Autenticación:
-- Login en /auth/login devuelve token JWT.
-- Frontend lo guarda y lo envía en Authorization: Bearer <token>.
-
-Roles:
-- admin
-- cuidador
-- familia
-
-Reglas de acceso importantes:
-- admin: CRUD completo principal.
-- familia: acceso a pacientes y consulta de guardias por paciente.
-- cuidador: acceso a guardias propias y documentos.
-
+*Nota: La ruta del admin es oculta y no aparece en la página principal.*
 
 ============================================================
-2) Base de datos SQL usada
+2) Backend (Flask)
 ============================================================
 
-Por diseño del proyecto:
-- El backend está pensado para PostgreSQL (ver .env.example y README).
-
-En esta configuración local:
-- Se usa SQLite para demo rápida:
-  DATABASE_URL=sqlite:///cuidadorapp.db
-
-Qué cambia entre SQLite y PostgreSQL:
-- Modelo y migraciones son los mismos.
-- Solo cambia la cadena DATABASE_URL.
-
-Para pasar a PostgreSQL:
-1. Edita backend-flask/.env
-2. Reemplaza DATABASE_URL por:
-   postgresql://usuario:password@localhost:5432/cuidadorapp
-3. Ejecuta migraciones y seed otra vez.
-
+- **Stack:** Flask + Flask-SQLAlchemy + Alembic + JWT.
+- **Base de datos:** SQLite por defecto para desarrollo local (configurable a PostgreSQL en `.env`).
+- **Autenticación:** JWT (JSON Web Token).
+- **Permisos:** Sincronizados para que los 3 roles puedan consultar la información necesaria (cuidadores, pacientes, guardias, pagos).
 
 ============================================================
-3) Qué es el seed
+3) Frontend (React/Vite)
 ============================================================
 
-Archivo:
-- backend-flask/scripts/seed_test_users.py
-
-Definición:
-- Seed = script para poblar la base con datos iniciales de prueba.
-
-Qué crea/actualiza el seed:
-- Usuario admin
-- Usuario cuidador
-- Usuario familia
-- Perfil de cuidador asociado
-- Paciente asociado
-- 1 guardia demo
-- 1 pago demo
-
-Importante:
-- Es idempotente: puedes ejecutarlo varias veces sin duplicar todo.
-
-Credenciales de prueba:
-- admin@cuidadorapp.com / Admin123!
-- cuidador@cuidadorapp.com / Cuidador123!
-- familia@cuidadorapp.com / Familia123!
-
+- **Stack:** React + Vite + React Router + Axios + Tailwind.
+- **Estructura:**
+  - `src/components`: UI reutilizable y layouts por rol.
+  - `src/pages`: Pantallas separadas por rol (`admin`, `caregiver`, `family`).
+  - `src/services/api.js`: Cliente Axios para consumir el backend.
 
 ============================================================
-4) Frontend: cómo se construyó
+4) Solución de problemas
 ============================================================
 
-Stack frontend:
-- React + Vite + React Router + Axios + Tailwind.
-
-Cómo está organizado:
-- src/components/common: UI reutilizable (Button, Card, Input, Sidebar, etc.).
-- src/components/layouts: layout por rol (AdminLayout, CaregiverLayout, FamilyLayout).
-- src/pages: pantallas por rol.
-- src/services/api.js: cliente Axios y servicios por recurso.
-
-Decisiones de construcción:
-1. Router por rol en App.jsx.
-2. Sidebar por rol con ruta activa.
-3. Páginas con estados consistentes:
-   - loading
-   - error
-   - empty
-4. CRUD admin conectado a backend:
-   - pacientes
-   - cuidadores
-   - guardias
-   - pagos
-5. Login real contra backend con JWT y redirección por rol.
-
-
-============================================================
-5) Flujo recomendado de demo
-============================================================
-
-1. Ejecutar .\scripts\start-all.ps1
-2. Abrir frontend (http://127.0.0.1:5173)
-3. Login admin
-4. Probar CRUD:
-   - /admin/pacientes
-   - /admin/cuidadores
-   - /admin/guardias
-   - /admin/pagos
-5. Confirmar pago y revisar /admin/reportes
-
-
-============================================================
-6) Si algo falla
-============================================================
-
-Backend no levanta:
-- Revisa backend-flask/.env
-- Verifica migraciones: python -m flask db upgrade
-
-Frontend no conecta:
-- Revisa frontend/.env.local
-- Debe tener VITE_API_BASE_URL=http://127.0.0.1:5000
-
-Error de credenciales:
-- Reejecuta seed:
-  python scripts\seed_test_users.py
+- **Backend no levanta:** Revisa `backend-flask/.env` y ejecuta migraciones (`flask db upgrade`).
+- **Frontend no conecta:** Revisa `frontend/.env.local` (`VITE_API_BASE_URL=http://127.0.0.1:5000`).
+- **Error de credenciales:** Reejecuta el seed de la base de datos: `python backend-flask/scripts/seed_test_users.py`

@@ -3,16 +3,15 @@ import AdminLayout from '../../components/layouts/AdminLayout'
 import Card from '../../components/common/Card'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
+import DualPanel from '../../components/common/DualPanel'
 import PageHeader from '../../components/common/PageHeader'
 import { LoadingState, EmptyState, ErrorState } from '../../components/common/DataState'
-import { guardiaService, unwrapList } from '../../services/api'
+import { guardiaService } from '../../services/api'
+import useResourceList from '../../hooks/useResourceList'
 
 const ROWS_PER_PAGE = 8
 
 export default function Guardias() {
-  const [guardias, setGuardias] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [page, setPage] = useState(1)
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -26,26 +25,20 @@ export default function Guardias() {
     pacienteId: ''
   })
 
-  const loadGuardias = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await guardiaService.getAll()
-      const rows = unwrapList(res.data)
-      setGuardias(rows)
-      if (rows.length > 0 && !selectedGuardia) {
-        setSelectedGuardia(rows[0])
-      }
-    } catch {
-      setError('No se pudieron cargar los turnos de guardia.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const {
+    items: guardias,
+    loading,
+    error,
+    setError,
+    refresh: loadGuardias
+  } = useResourceList({
+    fetcher: guardiaService.getAll,
+    errorMessage: 'No se pudieron cargar los turnos de guardia.'
+  })
 
   useEffect(() => {
-    loadGuardias()
-  }, [])
+    setSelectedGuardia((prev) => prev || guardias[0] || null)
+  }, [guardias])
 
   const onChange = (event) => {
     const { name, value } = event.target
@@ -201,49 +194,47 @@ export default function Guardias() {
           )}
         </Card>
 
-        {(showForm || selectedGuardia) && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {showForm && (
-              <Card>
-                <h4 className="text-lg font-bold mb-4">{editingId ? 'Editar Turno' : 'Nuevo Turno'}</h4>
-                <form onSubmit={onSubmit} className="space-y-4">
-                  <Input label="Fecha" name="fecha" type="date" value={formData.fecha} onChange={onChange} required />
-                  <Input label="Horas trabajadas" name="horasTrabajadas" type="number" value={formData.horasTrabajadas} onChange={onChange} required />
-                  <Input label="ID Cuidador" name="cuidadorId" type="number" value={formData.cuidadorId} onChange={onChange} required />
-                  <Input label="ID Paciente" name="pacienteId" type="number" value={formData.pacienteId} onChange={onChange} required />
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[#0d141b] text-sm font-semibold">Informe</label>
-                    <textarea
-                      name="informe"
-                      value={formData.informe}
-                      onChange={onChange}
-                      rows={4}
-                      className="w-full border border-[#cfdbe7] rounded-lg p-3 text-sm"
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button>
-                    <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
-                  </div>
-                </form>
-              </Card>
-            )}
-
-            {selectedGuardia && (
-              <Card>
-                <h4 className="text-lg font-bold mb-4">Detalle del turno</h4>
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-semibold">Fecha:</span> {selectedGuardia.fecha || 'Sin fecha'}</p>
-                  <p><span className="font-semibold">Cuidador:</span> {selectedGuardia.cuidador?.nombre || 'Sin cuidador'} (ID {selectedGuardia.cuidador?.id || 'N/A'})</p>
-                  <p><span className="font-semibold">Paciente:</span> {selectedGuardia.paciente?.nombre || 'Sin paciente'} (ID {selectedGuardia.paciente?.id || 'N/A'})</p>
-                  <p><span className="font-semibold">Horas:</span> {selectedGuardia.horasTrabajadas || 0}h</p>
-                  <p><span className="font-semibold">Informe:</span> {selectedGuardia.informe || 'Sin informe'}</p>
+        <DualPanel
+          show={showForm || selectedGuardia}
+          left={showForm && (
+            <Card>
+              <h4 className="text-lg font-bold mb-4">{editingId ? 'Editar Turno' : 'Nuevo Turno'}</h4>
+              <form onSubmit={onSubmit} className="space-y-4">
+                <Input label="Fecha" name="fecha" type="date" value={formData.fecha} onChange={onChange} required />
+                <Input label="Horas trabajadas" name="horasTrabajadas" type="number" value={formData.horasTrabajadas} onChange={onChange} required />
+                <Input label="ID Cuidador" name="cuidadorId" type="number" value={formData.cuidadorId} onChange={onChange} required />
+                <Input label="ID Paciente" name="pacienteId" type="number" value={formData.pacienteId} onChange={onChange} required />
+                <div className="flex flex-col gap-2">
+                  <label className="text-[#0d141b] text-sm font-semibold">Informe</label>
+                  <textarea
+                    name="informe"
+                    value={formData.informe}
+                    onChange={onChange}
+                    rows={4}
+                    className="w-full border border-[#cfdbe7] rounded-lg p-3 text-sm"
+                  />
                 </div>
-              </Card>
-            )}
-          </div>
-        )}
+
+                <div className="flex gap-2">
+                  <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button>
+                  <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
+                </div>
+              </form>
+            </Card>
+          )}
+          right={selectedGuardia && (
+            <Card>
+              <h4 className="text-lg font-bold mb-4">Detalle del turno</h4>
+              <div className="space-y-2 text-sm">
+                <p><span className="font-semibold">Fecha:</span> {selectedGuardia.fecha || 'Sin fecha'}</p>
+                <p><span className="font-semibold">Cuidador:</span> {selectedGuardia.cuidador?.nombre || 'Sin cuidador'} (ID {selectedGuardia.cuidador?.id || 'N/A'})</p>
+                <p><span className="font-semibold">Paciente:</span> {selectedGuardia.paciente?.nombre || 'Sin paciente'} (ID {selectedGuardia.paciente?.id || 'N/A'})</p>
+                <p><span className="font-semibold">Horas:</span> {selectedGuardia.horasTrabajadas || 0}h</p>
+                <p><span className="font-semibold">Informe:</span> {selectedGuardia.informe || 'Sin informe'}</p>
+              </div>
+            </Card>
+          )}
+        />
       </div>
     </AdminLayout>
   )

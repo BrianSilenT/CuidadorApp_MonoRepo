@@ -88,12 +88,6 @@ export default function Reportes() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white border border-[#e7edf3] rounded-xl p-5"><p className="text-sm text-[#4c739a]">Reportes generados esta semana</p><p className="text-2xl font-bold">24</p></div>
-          <div className="bg-white border border-[#e7edf3] rounded-xl p-5"><p className="text-sm text-[#4c739a]">Descargas totales (Oct)</p><p className="text-2xl font-bold">156</p></div>
-          <div className="bg-white border border-[#e7edf3] rounded-xl p-5"><p className="text-sm text-[#4c739a]">Reportes programados</p><p className="text-2xl font-bold">3</p></div>
-        </div>
-
         {!loading && !error && (
           <Card>
             <h4 className="text-lg font-bold mb-3">Reporte por cuidador</h4>

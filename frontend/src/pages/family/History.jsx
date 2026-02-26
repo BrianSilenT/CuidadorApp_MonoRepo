@@ -4,6 +4,7 @@ import Input from '../../components/common/Input'
 import PageHeader from '../../components/common/PageHeader'
 import { LoadingState, EmptyState, ErrorState } from '../../components/common/DataState'
 import api, { unwrapList } from '../../services/api'
+import { downloadCsv } from '../../utils/csv'
 
 export default function History() {
   const [pacienteId, setPacienteId] = useState('')
@@ -31,6 +32,21 @@ export default function History() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const exportCsv = () => {
+    downloadCsv({
+      fileName: `historial-paciente-${pacienteId || 'general'}.csv`,
+      headers: ['id', 'fecha', 'paciente', 'cuidador', 'horas_trabajadas', 'informe'],
+      rows: historyRows.map((item) => [
+        item.id,
+        item.fecha || '',
+        item.paciente?.nombre || '',
+        item.cuidador?.nombre || '',
+        item.horasTrabajadas || 0,
+        (item.informe || '').replace(/\n/g, ' ')
+      ])
+    })
   }
 
   return (
@@ -63,8 +79,7 @@ export default function History() {
             </form>
 
             <div className="flex gap-2 w-full md:w-auto">
-              <button className="h-10 px-4 rounded-lg border border-[#e7edf3] text-sm font-semibold text-[#4c739a] hover:bg-[#f6f7f8]">Servicios Recientes</button>
-              <button className="h-10 px-4 rounded-lg border border-[#e7edf3] text-sm font-semibold text-[#4c739a] hover:bg-[#f6f7f8]">Exportar CSV</button>
+              <button type="button" onClick={exportCsv} disabled={historyRows.length === 0} className="h-10 px-4 rounded-lg border border-[#e7edf3] text-sm font-semibold text-[#4c739a] hover:bg-[#f6f7f8] disabled:opacity-50">Exportar CSV</button>
             </div>
           </div>
         </div>
@@ -93,12 +108,12 @@ export default function History() {
                     {historyRows.map((item) => (
                       <tr key={item.id} className="border-b border-[#e7edf3] hover:bg-[#f6f7f8] transition-colors">
                         <td className="py-4 px-4 text-sm font-medium">{item.fecha || 'N/A'}</td>
-                        <td className="py-4 px-4 text-sm text-[#4c739a]">09:00 AM - 01:00 PM</td>
+                        <td className="py-4 px-4 text-sm text-[#4c739a]">{item.horasTrabajadas ? `${item.horasTrabajadas}h` : 'Sin dato'}</td>
                         <td className="py-4 px-4 text-sm text-[#0d141b]">{item.paciente?.nombre || 'Paciente N/A'}</td>
                         <td className="py-4 px-4 text-sm text-[#4c739a]">{item.cuidador?.nombre || 'N/A'}</td>
                         <td className="py-4 px-4 text-sm text-[#4c739a]">{item.horasTrabajadas || 0}h</td>
                         <td className="py-4 px-4 text-right">
-                          <button className="text-sm font-semibold text-[#2b8cee] hover:text-blue-700">Ver reporte</button>
+                          <button type="button" className="text-sm font-semibold text-[#2b8cee] hover:text-blue-700" onClick={() => window.alert(item.informe || 'Sin informe registrado.')}>Ver reporte</button>
                         </td>
                       </tr>
                     ))}
