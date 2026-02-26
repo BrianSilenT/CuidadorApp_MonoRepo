@@ -4,6 +4,20 @@ from app.models.paciente import Paciente
 def obtener_todos_pacientes(pagina=1, por_pagina=10):
     paginacion = Paciente.query.paginate(page=pagina, per_page=por_pagina, error_out=False)
     listado = []
+    lista_datos = []
+    for p in paginacion.items:
+        lista_datos.append(p.to_dict())
+    return {
+        "datos": lista_datos,
+        "pagina": paginacion.page,
+        "por_pagina": paginacion.per_page,
+        "total": paginacion.total,
+        "paginas": paginacion.pages
+    }
+
+def obtener_pacientes_por_usuario(usuario_id, pagina=1, por_pagina=10):
+    paginacion = Paciente.query.filter_by(usuario_id=usuario_id).paginate(page=pagina, per_page=por_pagina, error_out=False)
+    listado = []
     for p in paginacion.items:
         listado.append(p.to_dict())
     return {

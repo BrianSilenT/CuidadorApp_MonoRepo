@@ -44,21 +44,52 @@ def obtener_por_paciente(paciente_id):
     resultado = guardia_service.obtener_guardias_por_paciente(paciente_id, pagina, por_pagina)
     return jsonify(resultado), 200
 
+@guardia_bp.route("/mis-guardias", methods=["GET"])
+@jwt_required()
+@rol_requerido("familia")
+def obtener_mis_guardias():
+    pagina = request.args.get("pagina", 1, type=int)
+    por_pagina = request.args.get("por_pagina", 10, type=int)
+    usuario_id = int(get_jwt_identity())
+    resultado = guardia_service.obtener_guardias_por_familia(usuario_id, pagina, por_pagina)
+    return jsonify(resultado), 200
+
 @guardia_bp.route("/", methods=["POST"])
 @jwt_required()
-@rol_requerido("admin", "cuidador")
+@rol_requerido("admin", "cuidador", "familia")
 def crear():
     datos = request.get_json()
-    usuario_id = get_jwt_identity()
-    usuario = Usuario.query.get(int(usuario_id))
+    usuario_id = int(get_jwt_identity())
+    usuario = Usuario.query.get(usuario_id)
 
     # Si es cuidador, solo puede crear guardias propias
     if usuario.rol == "cuidador":
         cuidador = Cuidador.query.filter_by(usuario_id=usuario.id).first()
         if not cuidador:
             return jsonify({"error": "No tienes un perfil de cuidador asociado"}), 403
-        if datos.get("cuidador_id") != cuidador.id:
+        if datos.get("cuidador_id") and int(datos.get("cuidador_id")) != cuidador.id:
             return jsonify({"error": "No puedes crear guardias de otros cuidadores"}), 403
+        datos['cuidador_id'] = cuidador.id
+    
+    # Si es familia, verifica que el paciente sea suyo
+    if usuario.rol == "familia":
+        paciente_id = datos.get("paciente_id")
+        if not paciente_id:
+             return jsonify({"error": "Falta paciente_id"}), 400
+        # Check permissions
+        es_paciente_suyo = any(p.id == int(paciente_id) for p in usuario.pacientes)
+        if not es_paciente_suyo:
+             return jsonify({"error": "Este paciente no pertenece a su grupo familiar"}), 403
+        
+        # Familia can create with null cuidador_id (Open Request)
+        # If family selects a caregiver, set as preferred and ensure state is 'Pendiente'
+        cuidador_seleccionado_id = datos.get("cuidador_id")
+        if cuidador_seleccionado_id:
+            usuario.cuidador_preferido_id = cuidador_seleccionado_id
+            datos['estado'] = 'Pendiente' # Wait for caregiver acceptance
+        else:
+             # Even for open requests, it should be Pendiente until someone takes it
+             datos['estado'] = 'Pendiente'
 
     resultado = guardia_service.crear_guardia(datos)
     if isinstance(resultado, tuple):

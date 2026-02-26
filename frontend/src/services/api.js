@@ -57,7 +57,15 @@ const createService = (resource) => ({
 
 export const cuidadorService = createService('cuidadores')
 export const pacienteService = createService('pacientes')
-export const guardiaService = createService('guardias')
+
+const baseGuardiaService = createService('guardias')
+export const guardiaService = {
+  ...baseGuardiaService,
+  getMine: () => api.get('/guardias/mis-guardias'),
+  getByPaciente: (id) => api.get(`/guardias/paciente/${id}`),
+  getByCuidador: (id) => api.get(`/guardias/cuidador/${id}`)
+}
+
 export const pagoService = createService('pagos')
 export const usuarioService = createService('usuarios')
 export const incidenteService = createService('incidentes')
@@ -66,7 +74,8 @@ export const logPacienteService = createService('logs-pacientes')
 export const authService = {
   login: (data) => api.post('/auth/login', data),
   logout: () => api.post('/auth/logout'),
-  changePassword: (data) => api.put('/auth/cambiar-password', data)
+  changePassword: (data) => api.put('/auth/cambiar-password', data),
+  me: () => api.get('/auth/me')
 }
 
 export const sessionService = {

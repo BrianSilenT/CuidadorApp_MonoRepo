@@ -84,6 +84,14 @@ python run.py
 
 El servidor arranca en `http://localhost:5000`
 
+Al iniciar, el backend crea/actualiza automáticamente usuarios demo para pruebas.
+
+### Credenciales demo
+
+- Admin: `admin@cuidadorapp.com` / `admin123`
+- Cuidador: `cuidador@cuidadorapp.com` / `cuidador123`
+- Familia: `familia@cuidadorapp.com` / `familia123`
+
 ---
 
 ## Modelo de datos

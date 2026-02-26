@@ -1,267 +1,187 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import AdminLayout from '../../components/layouts/AdminLayout'
 import Card from '../../components/common/Card'
 import Badge from '../../components/common/Badge'
 import Button from '../../components/common/Button'
-import Input from '../../components/common/Input'
-import DualPanel from '../../components/common/DualPanel'
 import PageHeader from '../../components/common/PageHeader'
 import { LoadingState, EmptyState, ErrorState } from '../../components/common/DataState'
-import api, { pagoService } from '../../services/api'
-import useResourceList from '../../hooks/useResourceList'
+import api, { pagoService, unwrapList } from '../../services/api'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 export default function Pagos() {
+  const [activeTab, setActiveTab] = useState('pending')
+  const [pagos, setPagos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [confirmingId, setConfirmingId] = useState(null)
-  const [saving, setSaving] = useState(false)
-  const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [selectedPago, setSelectedPago] = useState(null)
-  const [formData, setFormData] = useState({
-    monto: '',
-    fechaPago: '',
-    metodo: '',
-    confirmado: false,
-    cuidadorId: ''
-  })
 
-  const {
-    items: pagos,
-    loading,
-    error,
-    setError,
-    refresh: loadPagos
-  } = useResourceList({
-    fetcher: pagoService.getAll,
-    errorMessage: 'No se pudieron cargar los pagos. Esta vista requiere rol administrador.'
-  })
-
-  const totalPendiente = pagos.filter((item) => !item.confirmado).reduce((sum, item) => sum + (item.monto || 0), 0)
-  const totalConfirmado = pagos.filter((item) => item.confirmado).reduce((sum, item) => sum + (item.monto || 0), 0)
-  const cantidadPendientes = pagos.filter((item) => !item.confirmado).length
+  const loadPagos = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await pagoService.getAll()
+      setPagos(unwrapList(response.data))
+    } catch (err) {
+      console.error(err)
+      if (err.response && err.response.status === 403) {
+        setError("Error de permisos: No tienes acceso a los registros de pagos.")
+      } else {
+        setError("No se pudieron cargar los pagos.")
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    setSelectedPago((prev) => prev || pagos[0] || null)
-  }, [pagos])
+    loadPagos()
+  }, [])
+
+  const filteredPagos = useMemo(() => {
+    return pagos
+      .filter(p => activeTab === 'pending' ? !p.confirmado : p.confirmado)
+      .sort((a, b) => {
+        const dateA = a.fechaPago ? new Date(a.fechaPago) : new Date(0)
+        const dateB = b.fechaPago ? new Date(b.fechaPago) : new Date(0)
+        return dateB - dateA
+      })
+  }, [pagos, activeTab])
 
   const confirmarPago = async (id) => {
+    if (!window.confirm('¿Confirmar que este pago ha sido realizado?')) return
     setConfirmingId(id)
     try {
-      await api.put(`/pagos/${id}/confirmar`)
-      await loadPagos()
-    } catch {
-      setError('No se pudo confirmar el pago seleccionado.')
+        await api.put(`/pagos/${id}/confirmar`)
+        // Optimistic update
+        setPagos(prev => prev.map(p => p.id === id ? { ...p, confirmado: true } : p))
+        // Or reload
+        // await loadPagos()
+        if (activeTab === 'pending') {
+            // It will disappear from pending, which is expected
+        }
+    } catch (err) {
+        alert('Error al confirmar el pago.')
     } finally {
-      setConfirmingId(null)
-    }
-  }
-
-  const onChange = (event) => {
-    const { name, value, type, checked } = event.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }))
-  }
-
-  const openCreate = () => {
-    setEditingId(null)
-    setFormData({ monto: '', fechaPago: '', metodo: '', confirmado: false, cuidadorId: '' })
-    setShowForm(true)
-  }
-
-  const openEdit = (pago) => {
-    setEditingId(pago.id)
-    setFormData({
-      monto: `${pago.monto || ''}`,
-      fechaPago: pago.fechaPago || '',
-      metodo: pago.metodo || '',
-      confirmado: Boolean(pago.confirmado),
-      cuidadorId: `${pago.cuidador?.id || ''}`
-    })
-    setShowForm(true)
-  }
-
-  const onSubmit = async (event) => {
-    event.preventDefault()
-
-    const monto = Number(formData.monto)
-    const cuidadorId = Number(formData.cuidadorId)
-    if (!monto || monto <= 0 || !cuidadorId) {
-      setError('Monto (>0) e ID de cuidador son obligatorios.')
-      return
-    }
-
-    setSaving(true)
-    setError('')
-    try {
-      const payload = {
-        monto,
-        fecha_pago: formData.fechaPago || null,
-        metodo: formData.metodo,
-        confirmado: formData.confirmado,
-        cuidador_id: cuidadorId
-      }
-
-      if (editingId) {
-        await pagoService.update(editingId, payload)
-      } else {
-        await pagoService.create(payload)
-      }
-
-      setShowForm(false)
-      setEditingId(null)
-      setFormData({ monto: '', fechaPago: '', metodo: '', confirmado: false, cuidadorId: '' })
-      await loadPagos()
-    } catch {
-      setError('No se pudo guardar el pago.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const removePago = async (id) => {
-    const confirmed = window.confirm('¿Eliminar pago?')
-    if (!confirmed) return
-
-    setSaving(true)
-    setError('')
-    try {
-      await pagoService.delete(id)
-      if (selectedPago?.id === id) {
-        setSelectedPago(null)
-      }
-      await loadPagos()
-    } catch {
-      setError('No se pudo eliminar el pago.')
-    } finally {
-      setSaving(false)
+        setConfirmingId(null)
     }
   }
 
   return (
-    <AdminLayout title="Pagos y Finanzas">
-      <div className="p-8 space-y-6 bg-[#f6f7f8] min-h-full">
-        <PageHeader
-          title="Pagos"
-          description="Control de pagos por cuidador y estado de confirmación."
-          breadcrumb={[
-            { label: 'Administración', path: '/admin/dashboard' },
-            { label: 'Pagos' }
-          ]}
-          actionLabel="Nuevo Pago"
-          actionIcon="add"
-          onAction={openCreate}
-        />
+    <AdminLayout>
+      <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        <PageHeader 
+            title="Gestión de Pagos" 
+            description="Control financiero y confirmación de pagos a cuidadores."
+            breadcrumb={[
+                { label: 'Administración', path: '/admin/dashboard' },
+                { label: 'Pagos' }
+            ]}
+        >
+            <Button onClick={loadPagos} variant="secondary">Actualizar</Button>
+            <Button onClick={() => alert('Función de registro manual en desarrollo')}>+ Registrar Pago</Button>
+        </PageHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white border border-[#e7edf3] rounded-xl p-5"><p className="text-sm text-[#4c739a]">Pagos pendientes</p><p className="text-2xl font-bold">${totalPendiente.toFixed(2)}</p></div>
-          <div className="bg-white border border-[#e7edf3] rounded-xl p-5"><p className="text-sm text-[#4c739a]">Pagos confirmados</p><p className="text-2xl font-bold">${totalConfirmado.toFixed(2)}</p></div>
-          <div className="bg-white border border-[#e7edf3] rounded-xl p-5"><p className="text-sm text-[#4c739a]">Cantidad pendiente</p><p className="text-2xl font-bold">{cantidadPendientes}</p></div>
+        {/* Tabs */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`${
+                activeTab === 'pending'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+            >
+               Pendientes de Confirmación
+               {pagos.filter(p => !p.confirmado).length > 0 && (
+                  <span className="bg-orange-100 text-orange-600 py-0.5 px-2 rounded-full text-xs font-bold">
+                    {pagos.filter(p => !p.confirmado).length}
+                  </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`${
+                activeTab === 'history'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Historial de Pagos
+            </button>
+          </nav>
         </div>
 
-        <Card>
-          {loading && <LoadingState label="Cargando pagos..." />}
-          {!loading && error && <ErrorState message={error} />}
-          {!loading && !error && pagos.length === 0 && (
-            <EmptyState label="No hay pagos registrados." />
-          )}
-
-          {!loading && !error && pagos.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px]">
-                <thead>
-                  <tr className="border-b border-[#e7edf3]">
-                    <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Cuidador</th>
-                    <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Monto</th>
-                    <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Método</th>
-                    <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Fecha pago</th>
-                    <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Estado</th>
-                    <th className="text-right py-3 px-4 text-sm font-bold text-[#4c739a]">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagos.map((pago) => (
-                    <tr key={pago.id} className="border-b border-[#e7edf3] hover:bg-[#f6f7f8]">
-                      <td className="py-3 px-4 text-sm font-semibold">{pago.cuidador?.nombre || 'Sin cuidador'}</td>
-                      <td className="py-3 px-4 text-sm text-[#4c739a]">${pago.monto || 0}</td>
-                      <td className="py-3 px-4 text-sm text-[#4c739a]">{pago.metodo || 'Sin método'}</td>
-                      <td className="py-3 px-4 text-sm text-[#4c739a]">{pago.fechaPago || 'Pendiente'}</td>
-                      <td className="py-3 px-4">
-                        <Badge variant={pago.confirmado ? 'success' : 'warning'}>
-                          {pago.confirmado ? 'Confirmado' : 'Pendiente'}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button size="sm" variant="secondary" onClick={() => setSelectedPago(pago)}>Ver</Button>
-                          <Button size="sm" variant="outline" onClick={() => openEdit(pago)}>Editar</Button>
-                          {!pago.confirmado ? (
-                            <Button
-                              size="sm"
-                              variant="primary"
-                              disabled={confirmingId === pago.id}
-                              onClick={() => confirmarPago(pago.id)}
-                            >
-                              {confirmingId === pago.id ? 'Confirmando...' : 'Confirmar'}
-                            </Button>
-                          ) : (
-                            <Button size="sm" variant="secondary" disabled>Confirmado</Button>
-                          )}
-                          <Button size="sm" variant="outline" onClick={() => removePago(pago.id)} disabled={saving}>Eliminar</Button>
-                        </div>
-                      </td>
+        {loading ? (
+           <LoadingState label="Cargando pagos..." />
+        ) : error ? (
+           <ErrorState message={error} retry={loadPagos} />
+        ) : (
+           <Card className="overflow-hidden">
+             {filteredPagos.length === 0 ? (
+                <EmptyState 
+                    title={activeTab === 'pending' ? "Todo al día" : "Sin historial"} 
+                    description={activeTab === 'pending' ? "No hay pagos pendientes de confirmación." : "No hay registros de pagos anteriores."}
+                />
+             ) : (
+                <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cuidador</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Método</th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                      {activeTab === 'pending' && (
+                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acción</th>
+                      )}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
-
-        <DualPanel
-          show={showForm || selectedPago}
-          left={showForm && (
-            <Card>
-              <h4 className="text-lg font-bold mb-4">{editingId ? 'Editar Pago' : 'Nuevo Pago'}</h4>
-              <form onSubmit={onSubmit} className="space-y-4">
-                <Input label="Monto" name="monto" type="number" value={formData.monto} onChange={onChange} required />
-                <Input label="Fecha de pago" name="fechaPago" type="date" value={formData.fechaPago} onChange={onChange} />
-                <Input label="Método" name="metodo" value={formData.metodo} onChange={onChange} />
-                <Input label="ID Cuidador" name="cuidadorId" type="number" value={formData.cuidadorId} onChange={onChange} required />
-
-                <div className="flex items-center gap-2">
-                  <input
-                    id="confirmado"
-                    type="checkbox"
-                    name="confirmado"
-                    checked={formData.confirmado}
-                    onChange={onChange}
-                  />
-                  <label htmlFor="confirmado" className="text-sm">Confirmado</label>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredPagos.map((pago) => (
+                      <tr key={pago.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                           {pago.fechaPago ? format(new Date(pago.fechaPago), 'dd MMM yyyy', { locale: es }) : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="font-medium text-gray-900">{pago.cuidador?.nombre || 'Desconocido'}</div>
+                            <div className="text-xs text-gray-500">ID: {pago.cuidador?.id}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                            {pago.metodo || 'Transferencia'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                            ${pago.monto?.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                            {pago.confirmado ? (
+                                <Badge variant="success">Confirmado</Badge>
+                            ) : (
+                                <Badge variant="warning">Pendiente</Badge>
+                            )}
+                        </td>
+                         {activeTab === 'pending' && (
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                <Button 
+                                    size="sm" 
+                                    variant="primary" 
+                                    onClick={() => confirmarPago(pago.id)}
+                                    disabled={confirmingId === pago.id}
+                                >
+                                    {confirmingId === pago.id ? '...' : 'Confirmar'}
+                                </Button>
+                            </td>
+                         )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
                 </div>
-
-                <div className="flex gap-2">
-                  <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button>
-                  <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
-                  <Button type="button" variant="outline" onClick={loadPagos}>Actualizar</Button>
-                </div>
-              </form>
-            </Card>
-          )}
-          right={selectedPago && (
-            <Card>
-              <h4 className="text-lg font-bold mb-4">Detalle del pago</h4>
-              <div className="space-y-2 text-sm">
-                <p><span className="font-semibold">ID:</span> {selectedPago.id}</p>
-                <p><span className="font-semibold">Cuidador:</span> {selectedPago.cuidador?.nombre || 'Sin cuidador'} (ID {selectedPago.cuidador?.id || 'N/A'})</p>
-                <p><span className="font-semibold">Monto:</span> ${selectedPago.monto || 0}</p>
-                <p><span className="font-semibold">Método:</span> {selectedPago.metodo || 'Sin método'}</p>
-                <p><span className="font-semibold">Fecha:</span> {selectedPago.fechaPago || 'Pendiente'}</p>
-                <p><span className="font-semibold">Estado:</span> {selectedPago.confirmado ? 'Confirmado' : 'Pendiente'}</p>
-              </div>
-            </Card>
-          )}
-        />
+             )}
+           </Card>
+        )}
       </div>
     </AdminLayout>
   )

@@ -1,168 +1,174 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '../../components/layouts/AdminLayout'
 import Card from '../../components/common/Card'
-import Button from '../../components/common/Button'
-import Input from '../../components/common/Input'
 import StatCard from '../../components/common/StatCard'
 import PageHeader from '../../components/common/PageHeader'
-import { LoadingState, EmptyState, ErrorState } from '../../components/common/DataState'
+import { LoadingState, ErrorState } from '../../components/common/DataState'
 import { reporteService, unwrapList } from '../../services/api'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 export default function Reportes() {
-  const [resumen, setResumen] = useState(null)
-  const [cuidadores, setCuidadores] = useState([])
-  const [guardias, setGuardias] = useState([])
-  const [filters, setFilters] = useState({ desde: '', hasta: '' })
   const [loading, setLoading] = useState(true)
-  const [loadingGuardias, setLoadingGuardias] = useState(false)
   const [error, setError] = useState('')
-  const [guardiasError, setGuardiasError] = useState('')
+  const [stats, setStats] = useState({
+    cuidadores: { total: 0 },
+    pacientes: { total: 0 },
+    guardias: { total: 0, totalHoras: 0 }
+  })
+  const [recentPayments, setRecentPayments] = useState([])
+  const [topCuidadores, setTopCuidadores] = useState([])
+
+  const loadData = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const [resumen, pagosInfo, cuidadoresInfo] = await Promise.all([
+        reporteService.getResumen(),
+        reporteService.getPagos(), 
+        reporteService.getCuidadores()
+      ])
+
+      setStats(resumen.data)
+      setRecentPayments(unwrapList(pagosInfo.data).slice(0, 5)) // Top 5
+      setTopCuidadores(unwrapList(cuidadoresInfo.data).slice(0, 5))
+
+    } catch (err) {
+      console.error(err)
+      if (err.response && err.response.status === 403) {
+        setError('Acceso denegado: Se requieren permisos de administrador.')
+      } else {
+        setError('No se pudieron cargar los reportes.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      setError('')
-      try {
-        const [resumenRes, cuidadoresRes] = await Promise.all([
-          reporteService.getResumen(),
-          reporteService.getCuidadores()
-        ])
-        setResumen(resumenRes.data)
-        setCuidadores(unwrapList(cuidadoresRes.data))
-      } catch {
-        setError('No se pudieron cargar los reportes generales. Requiere permisos de administrador.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadData()
   }, [])
 
-  const onFilterChange = (event) => {
-    const { name, value } = event.target
-    setFilters((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const loadGuardiasPorRango = async (event) => {
-    event.preventDefault()
-    if (!filters.desde || !filters.hasta) {
-      setGuardiasError('Debes indicar fecha desde y hasta.')
-      return
-    }
-
-    setLoadingGuardias(true)
-    setGuardiasError('')
-    try {
-      const response = await reporteService.getGuardiasPorFecha(filters.desde, filters.hasta)
-      setGuardias(response.data?.guardias || [])
-    } catch {
-      setGuardiasError('No se pudo generar el reporte de guardias para ese rango.')
-      setGuardias([])
-    } finally {
-      setLoadingGuardias(false)
-    }
-  }
-
   return (
-    <AdminLayout title="Reportes">
-      <div className="p-8 space-y-6 bg-[#f6f7f8] min-h-full">
+    <AdminLayout>
+      <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
         <PageHeader
-          title="Reportes y métricas"
-          description="Resumen de operación, horas trabajadas y pagos para administración."
+          title="Panel de Reportes"
+          description="Visión general de la operación y métricas clave."
           breadcrumb={[
             { label: 'Administración', path: '/admin/dashboard' },
             { label: 'Reportes' }
           ]}
         />
 
-        {loading && <Card><LoadingState label="Cargando reportes..." /></Card>}
-        {!loading && error && <ErrorState message={error} />}
+        {loading ? (
+          <LoadingState label="Generando reportes..." />
+        ) : error ? (
+          <ErrorState message={error} retry={loadData} />
+        ) : (
+          <>
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard
+                title="Cuidadores registrados"
+                value={stats.cuidadores?.total || 0}
+                icon="medical_services"
+                trend="up"
+                trendValue="+2% mes"
+              />
+              <StatCard
+                title="Pacientes activos"
+                value={stats.pacientes?.total || 0}
+                icon="elderly"
+                trend="up"
+                trendValue="+5% mes"
+              />
+              <StatCard
+                title="Guardias realizadas"
+                value={stats.guardias?.total || 0}
+                icon="event_available"
+              />
+              <StatCard
+                title="Horas facturadas"
+                value={`${stats.guardias?.totalHoras || 0}h`}
+                icon="schedule"
+                trend="down"
+                trendValue="-1% mes"
+              />
+            </div>
 
-        {!loading && !error && resumen && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            <StatCard title="Cuidadores" value={`${resumen.cuidadores?.total || 0}`} icon="medical_services" />
-            <StatCard title="Pacientes" value={`${resumen.pacientes?.total || 0}`} icon="group" />
-            <StatCard title="Guardias" value={`${resumen.guardias?.total || 0}`} icon="schedule" />
-            <StatCard title="Horas Totales" value={`${resumen.guardias?.totalHoras || 0}h`} icon="hourglass_top" />
-          </div>
-        )}
-
-        {!loading && !error && (
-          <Card>
-            <h4 className="text-lg font-bold mb-3">Reporte por cuidador</h4>
-            {cuidadores.length === 0 ? (
-              <EmptyState label="No hay datos de cuidadores para reportar." />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px]">
-                  <thead>
-                    <tr className="border-b border-[#e7edf3]">
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Cuidador</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Guardias</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Horas</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Pacientes</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Pago Pendiente</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cuidadores.map((item) => (
-                      <tr key={item.cuidador?.id || item.cuidador?.nombre} className="border-b border-[#e7edf3]">
-                        <td className="py-3 px-4 text-sm font-semibold">{item.cuidador?.nombre || 'N/A'}</td>
-                        <td className="py-3 px-4 text-sm text-[#4c739a]">{item.totalGuardias || 0}</td>
-                        <td className="py-3 px-4 text-sm text-[#4c739a]">{item.totalHoras || 0}h</td>
-                        <td className="py-3 px-4 text-sm text-[#4c739a]">{item.pacientesAtendidos || 0}</td>
-                        <td className="py-3 px-4 text-sm text-[#4c739a]">${item.pagos?.totalPendiente || 0}</td>
-                      </tr>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Top Cuidadores */}
+              <Card className="h-full">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-bold text-gray-900">Top Cuidadores (Horas)</h3>
+                  <button className="text-sm text-blue-600 hover:underline">Ver todos</button>
+                </div>
+                {topCuidadores.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No hay datos suficientes.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {topCuidadores.map((c, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
+                           {idx + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{c.nombre} {c.apellido}</p>
+                            <p className="text-xs text-gray-500">{c.email}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-gray-800">{c.horas_totales || 0}h</p>
+                          <p className="text-xs text-gray-500">Trabajadas</p>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
+                  </div>
+                )}
+              </Card>
+
+              {/* Ultimos Pagos */}
+              <Card className="h-full">
+                 <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-bold text-gray-900">Últimos Pagos</h3>
+                  <button className="text-sm text-blue-600 hover:underline">Ver finanzas</button>
+                </div>
+                {recentPayments.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No hay pagos registrados.</p>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-gray-500 uppercase bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-3">Fecha</th>
+                                    <th className="px-4 py-3">Cuidador</th>
+                                    <th className="px-4 py-3 text-right">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {recentPayments.map((p) => (
+                                    <tr key={p.id} className="border-b last:border-0 hover:bg-gray-50">
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            {p.fecha_pago || p.fechaPago ? format(new Date(p.fecha_pago || p.fechaPago), 'dd/MM/yyyy') : '-'}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900">
+                                            {p.cuidador?.nombre || 'Cuidador'}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-right font-bold text-green-600">
+                                            ${p.monto}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+              </Card>
+            </div>
+          </>
         )}
-
-        <Card>
-          <h4 className="text-lg font-bold mb-4">Reporte de guardias por fecha</h4>
-          <form onSubmit={loadGuardiasPorRango} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-            <Input label="Desde" name="desde" type="date" value={filters.desde} onChange={onFilterChange} required />
-            <Input label="Hasta" name="hasta" type="date" value={filters.hasta} onChange={onFilterChange} required />
-            <Button type="submit" variant="primary" icon="filter_alt">Generar</Button>
-          </form>
-
-          <div className="mt-4 space-y-3">
-            {loadingGuardias && <LoadingState label="Generando reporte de guardias..." />}
-            {guardiasError && <ErrorState message={guardiasError} />}
-            {!loadingGuardias && !guardiasError && guardias.length === 0 && (
-              <EmptyState label="Sin resultados todavía para el rango seleccionado." />
-            )}
-
-            {!loadingGuardias && !guardiasError && guardias.length > 0 && (
-              <div className="max-h-72 overflow-auto rounded-lg border border-[#e7edf3]">
-                <table className="w-full min-w-[680px]">
-                  <thead className="bg-[#f6f7f8] sticky top-0">
-                    <tr>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Fecha</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Cuidador</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Paciente</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Horas</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {guardias.map((guardia) => (
-                      <tr key={guardia.id} className="border-t border-[#e7edf3]">
-                        <td className="py-3 px-4 text-sm">{guardia.fecha}</td>
-                        <td className="py-3 px-4 text-sm">{guardia.cuidador?.nombre || 'N/A'}</td>
-                        <td className="py-3 px-4 text-sm">{guardia.paciente?.nombre || 'N/A'}</td>
-                        <td className="py-3 px-4 text-sm">{guardia.horasTrabajadas || 0}h</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </Card>
       </div>
     </AdminLayout>
   )

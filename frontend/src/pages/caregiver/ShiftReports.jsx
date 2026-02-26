@@ -74,11 +74,6 @@ export default function ShiftReports() {
     return [...guardias].sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
   }, [guardias])
 
-  const upcomingShifts = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0]
-    return sortedGuardias.filter(g => g.fecha >= today && g.estado === 'Programado').slice(0, 2)
-  }, [sortedGuardias])
-
   return (
     <CaregiverLayout title="Shift Logging & Reports">
       <div className="p-8 space-y-6 bg-[#f6f7f8] min-h-full">
@@ -127,21 +122,15 @@ export default function ShiftReports() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
             <div className="bg-white rounded-xl border border-[#e7edf3] shadow-sm overflow-hidden">
               <div className="p-4 border-b border-[#e7edf3] flex justify-between items-center bg-white">
                 <div className="flex gap-6">
-                  <button className="text-[#2b8cee] font-bold border-b-2 border-[#2b8cee] pb-4 -mb-4">Recent Shifts</button>
-                  <button className="text-[#4c739a] font-semibold hover:text-[#0d141b] pb-4 -mb-4">Calendar</button>
-                  <button className="text-[#4c739a] font-semibold hover:text-[#0d141b] pb-4 -mb-4">Reports Archive</button>
+                  <span className="text-[#2b8cee] font-bold border-b-2 border-[#2b8cee] pb-4 -mb-4">Recent Shifts</span>
                 </div>
                 <div className="flex gap-2">
                   <button className="w-8 h-8 flex items-center justify-center rounded bg-blue-50 text-blue-600">
                     <span className="material-symbols-outlined text-[20px]">format_list_bulleted</span>
-                  </button>
-                  <button className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 text-[#4c739a]">
-                    <span className="material-symbols-outlined text-[20px]">calendar_month</span>
                   </button>
                 </div>
               </div>
@@ -163,7 +152,7 @@ export default function ShiftReports() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#e7edf3]">
-                    {sortedGuardias.slice(0, 4).map((shift) => {
+                    {sortedGuardias.map((shift) => {
                       const date = new Date(shift.fecha).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                       const initials = shift.paciente?.nombre?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'PT'
                       const isProgress = shift.estado === 'En Progreso'
@@ -286,51 +275,7 @@ export default function ShiftReports() {
                 </div>
               </form>
             </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl border border-[#e7edf3] shadow-sm p-6">
-              <h3 className="text-xs font-bold text-[#4c739a] uppercase tracking-wider mb-6">UPCOMING SCHEDULE</h3>
-              <div className="space-y-6">
-                {upcomingShifts.length > 0 ? upcomingShifts.map((shift, idx) => {
-                  const date = new Date(shift.fecha)
-                  const month = date.toLocaleString('en-US', { month: 'short' }).toUpperCase()
-                  const day = date.getDate()
-                  return (
-                    <div key={idx} className="flex gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-[#f6f7f8] flex flex-col items-center justify-center shrink-0">
-                        <span className="text-[10px] font-bold text-[#4c739a]">{month}</span>
-                        <span className="text-lg font-bold text-[#0d141b] leading-none">{day}</span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-[#0d141b]">{idx === 0 ? 'Check-in' : 'Meal Prep'}</h4>
-                        <p className="text-sm text-[#4c739a] mt-1">{shift.paciente?.nombre} • {shift.horaInicio || '08:00 AM'}</p>
-                      </div>
-                    </div>
-                  )
-                }) : (
-                  <p className="text-sm text-[#4c739a]">No upcoming shifts.</p>
-                )}
-                <Button variant="outline" className="w-full mt-4">View Full Calendar</Button>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 rounded-xl border border-blue-100 p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[18px]">help</span>
-                </div>
-                <h3 className="font-bold text-[#0d141b]">Need assistance?</h3>
-              </div>
-              <p className="text-sm text-[#4c739a] mb-4">
-                Consult the "Shift Guidelines" manual or contact your supervisor if you have questions about logging hours.
-              </p>
-              <a href="#" className="text-[#2b8cee] font-semibold text-sm hover:underline flex items-center">
-                Read Documentation <span className="material-symbols-outlined text-[16px] ml-1">open_in_new</span>
-              </a>
-            </div>
-          </div>
-        </div>
+      </div>
       </div>
     </CaregiverLayout>
   )

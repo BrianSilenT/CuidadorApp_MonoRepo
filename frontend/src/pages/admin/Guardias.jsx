@@ -1,240 +1,176 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import AdminLayout from '../../components/layouts/AdminLayout'
 import Card from '../../components/common/Card'
+import Badge from '../../components/common/Badge'
 import Button from '../../components/common/Button'
-import Input from '../../components/common/Input'
-import DualPanel from '../../components/common/DualPanel'
 import PageHeader from '../../components/common/PageHeader'
 import { LoadingState, EmptyState, ErrorState } from '../../components/common/DataState'
-import { guardiaService } from '../../services/api'
-import useResourceList from '../../hooks/useResourceList'
-
-const ROWS_PER_PAGE = 8
+import { guardiaService, unwrapList } from '../../services/api'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 export default function Guardias() {
-  const [page, setPage] = useState(1)
-  const [saving, setSaving] = useState(false)
-  const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [selectedGuardia, setSelectedGuardia] = useState(null)
-  const [formData, setFormData] = useState({
-    fecha: '',
-    horasTrabajadas: '',
-    informe: '',
-    cuidadorId: '',
-    pacienteId: ''
-  })
-
-  const {
-    items: guardias,
-    loading,
-    error,
-    setError,
-    refresh: loadGuardias
-  } = useResourceList({
-    fetcher: guardiaService.getAll,
-    errorMessage: 'No se pudieron cargar los turnos de guardia.'
-  })
+  const [activeTab, setActiveTab] = useState('upcoming')
+  const [guardias, setGuardias] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  
+  const loadGuardias = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await guardiaService.getAll()
+      const data = unwrapList(response.data)
+      setGuardias(data)
+    } catch (err) {
+      console.error(err)
+      if (err.response && err.response.status === 403) {
+        setError("No tienes permisos de administrador para ver esta sección. Por favor, intenta cerrar sesión e ingresar nuevamente.")
+      } else {
+        setError("Error al cargar los turnos. Intenta nuevamente.")
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    setSelectedGuardia((prev) => prev || guardias[0] || null)
-  }, [guardias])
+    loadGuardias()
+  }, [])
 
-  const onChange = (event) => {
-    const { name, value } = event.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+  const filteredGuardias = useMemo(() => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0) // Compare dates only
+    
+    return guardias
+      .filter(g => {
+        if (!g.fecha) return false
+        // Fix timezone offset issue by treating YYYY-MM-DD as local
+        const [year, month, day] = g.fecha.split('-').map(Number)
+        const d = new Date(year, month - 1, day)
+        
+        return activeTab === 'upcoming' ? d >= now : d < now
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.fecha)
+        const dateB = new Date(b.fecha)
+        return activeTab === 'upcoming' ? dateA - dateB : dateB - dateA
+      })
+  }, [guardias, activeTab])
+
+  const getStatusBadge = (estado) => {
+    // Normalize string
+    const s = (estado || '').toLowerCase()
+    if (s.includes('complet') || s.includes('finaliz')) return <Badge variant="success">Completado</Badge>
+    if (s.includes('progre') || s.includes('curso')) return <Badge variant="info">En Curso</Badge>
+    if (s.includes('cancel')) return <Badge variant="error">Cancelado</Badge>
+    return <Badge variant="warning">Programado</Badge>
   }
-
-  const openCreate = () => {
-    setEditingId(null)
-    setFormData({ fecha: '', horasTrabajadas: '', informe: '', cuidadorId: '', pacienteId: '' })
-    setShowForm(true)
-  }
-
-  const openEdit = (guardia) => {
-    setEditingId(guardia.id)
-    setFormData({
-      fecha: guardia.fecha || '',
-      horasTrabajadas: `${guardia.horasTrabajadas || ''}`,
-      informe: guardia.informe || '',
-      cuidadorId: `${guardia.cuidador?.id || ''}`,
-      pacienteId: `${guardia.paciente?.id || ''}`
-    })
-    setShowForm(true)
-  }
-
-  const onSubmit = async (event) => {
-    event.preventDefault()
-
-    const horas = Number(formData.horasTrabajadas)
-    const cuidadorId = Number(formData.cuidadorId)
-    const pacienteId = Number(formData.pacienteId)
-
-    if (!formData.fecha || !horas || horas <= 0 || !cuidadorId || !pacienteId) {
-      setError('Fecha, horas (>0), cuidador ID y paciente ID son obligatorios.')
-      return
-    }
-
-    setSaving(true)
-    setError('')
-    try {
-      const payload = {
-        fecha: formData.fecha,
-        horas_trabajadas: horas,
-        informe: formData.informe,
-        cuidador_id: cuidadorId,
-        paciente_id: pacienteId
-      }
-
-      if (editingId) {
-        await guardiaService.update(editingId, payload)
-      } else {
-        await guardiaService.create(payload)
-      }
-
-      setShowForm(false)
-      setEditingId(null)
-      setFormData({ fecha: '', horasTrabajadas: '', informe: '', cuidadorId: '', pacienteId: '' })
-      await loadGuardias()
-    } catch {
-      setError('No se pudo guardar el turno.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const removeGuardia = async (id) => {
-    const confirmed = window.confirm('¿Eliminar turno de guardia?')
-    if (!confirmed) return
-
-    setSaving(true)
-    setError('')
-    try {
-      await guardiaService.delete(id)
-      if (selectedGuardia?.id === id) {
-        setSelectedGuardia(null)
-      }
-      await loadGuardias()
-    } catch {
-      setError('No se pudo eliminar el turno.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(guardias.length / ROWS_PER_PAGE)), [guardias])
-  const pageRows = useMemo(() => {
-    const start = (page - 1) * ROWS_PER_PAGE
-    return guardias.slice(start, start + ROWS_PER_PAGE)
-  }, [guardias, page])
 
   return (
-    <AdminLayout title="Turnos de Guardia">
-      <div className="p-8 space-y-6 bg-[#f6f7f8] min-h-full">
-        <PageHeader
-          title="Turnos"
-          description="Gestión de guardias por fecha, cuidador y paciente."
+    <AdminLayout>
+      <div className="p-6 space-y-6">
+        <PageHeader 
+          title="Gestión de Turnos" 
+          description="Supervisa y administra los turnos de los cuidadores."
           breadcrumb={[
             { label: 'Administración', path: '/admin/dashboard' },
-            { label: 'Turnos' }
+            { label: 'Guardias' }
           ]}
-          actionLabel="Nuevo Turno"
-          actionIcon="add"
-          onAction={openCreate}
-        />
+        >
+            <div className="flex gap-2">
+                 <Button onClick={loadGuardias} variant="secondary">Actualizar</Button>
+                 <Button onClick={() => alert('Función de crear turno en desarrollo')}>+ Nuevo Turno</Button>
+            </div>
+        </PageHeader>
 
-        <Card>
-          {loading && <LoadingState label="Cargando guardias..." />}
-          {!loading && error && <ErrorState message={error} />}
-          {!loading && !error && guardias.length === 0 && (
-            <EmptyState label="No hay guardias cargadas." />
-          )}
+        {/* Tabs */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('upcoming')}
+              className={`${
+                activeTab === 'upcoming'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Próximos Turnos
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`${
+                activeTab === 'history'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Historial
+            </button>
+          </nav>
+        </div>
 
-          {!loading && !error && guardias.length > 0 && (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px]">
-                  <thead>
-                    <tr className="border-b border-[#e7edf3]">
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Fecha</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Cuidador</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Paciente</th>
-                      <th className="text-left py-3 px-4 text-sm font-bold text-[#4c739a]">Horas</th>
-                      <th className="text-right py-3 px-4 text-sm font-bold text-[#4c739a]">Acciones</th>
+        {loading ? (
+           <div className="py-10 text-center text-gray-500">Cargando turnos...</div>
+        ) : error ? (
+           <ErrorState message={error} />
+        ) : (
+           <Card className="overflow-hidden">
+             {filteredGuardias.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                    No hay turnos para mostrar en esta sección.
+                </div>
+             ) : (
+                <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Horario</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cuidador</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paciente</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                      <th scope="col" className="relative px-6 py-3">
+                        <span className="sr-only">Acciones</span>
+                      </th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {pageRows.map((guardia) => (
-                      <tr key={guardia.id} className="border-b border-[#e7edf3] hover:bg-[#f6f7f8]">
-                        <td className="py-3 px-4 text-sm font-semibold">{guardia.fecha || 'Sin fecha'}</td>
-                        <td className="py-3 px-4 text-sm text-[#4c739a]">{guardia.cuidador?.nombre || 'Sin cuidador'}</td>
-                        <td className="py-3 px-4 text-sm text-[#4c739a]">{guardia.paciente?.nombre || 'Sin paciente'}</td>
-                        <td className="py-3 px-4 text-sm text-[#4c739a]">{guardia.horasTrabajadas || 0}h</td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button size="sm" variant="secondary" onClick={() => setSelectedGuardia(guardia)}>Ver</Button>
-                            <Button size="sm" variant="outline" onClick={() => openEdit(guardia)}>Editar</Button>
-                            <Button size="sm" variant="outline" onClick={() => removeGuardia(guardia.id)} disabled={saving}>Eliminar</Button>
-                          </div>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredGuardias.map((guardia) => (
+                      <tr key={guardia.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {format(new Date(guardia.fecha), 'PP', { locale: es })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {guardia.horaInicio} - {guardia.horaFin}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                                <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-800 flex items-center justify-center font-bold text-xs mr-3">
+                                    {guardia.cuidador?.nombre?.[0] || 'C'}
+                                </div>
+                                <div className="text-sm font-medium text-gray-900">
+                                    {guardia.cuidador?.nombre} {guardia.cuidador?.apellido}
+                                </div>
+                            </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {guardia.paciente?.nombre} {guardia.paciente?.apellido}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                            {getStatusBadge(guardia.estado)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button className="text-indigo-600 hover:text-indigo-900">Editar</button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
-
-              <div className="flex items-center justify-between pt-4">
-                <p className="text-sm text-[#4c739a]">Página {page} de {totalPages}</p>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" disabled={page === 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>Anterior</Button>
-                  <Button size="sm" variant="secondary" disabled={page === totalPages} onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}>Siguiente</Button>
                 </div>
-              </div>
-            </>
-          )}
-        </Card>
-
-        <DualPanel
-          show={showForm || selectedGuardia}
-          left={showForm && (
-            <Card>
-              <h4 className="text-lg font-bold mb-4">{editingId ? 'Editar Turno' : 'Nuevo Turno'}</h4>
-              <form onSubmit={onSubmit} className="space-y-4">
-                <Input label="Fecha" name="fecha" type="date" value={formData.fecha} onChange={onChange} required />
-                <Input label="Horas trabajadas" name="horasTrabajadas" type="number" value={formData.horasTrabajadas} onChange={onChange} required />
-                <Input label="ID Cuidador" name="cuidadorId" type="number" value={formData.cuidadorId} onChange={onChange} required />
-                <Input label="ID Paciente" name="pacienteId" type="number" value={formData.pacienteId} onChange={onChange} required />
-                <div className="flex flex-col gap-2">
-                  <label className="text-[#0d141b] text-sm font-semibold">Informe</label>
-                  <textarea
-                    name="informe"
-                    value={formData.informe}
-                    onChange={onChange}
-                    rows={4}
-                    className="w-full border border-[#cfdbe7] rounded-lg p-3 text-sm"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button>
-                  <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
-                </div>
-              </form>
-            </Card>
-          )}
-          right={selectedGuardia && (
-            <Card>
-              <h4 className="text-lg font-bold mb-4">Detalle del turno</h4>
-              <div className="space-y-2 text-sm">
-                <p><span className="font-semibold">Fecha:</span> {selectedGuardia.fecha || 'Sin fecha'}</p>
-                <p><span className="font-semibold">Cuidador:</span> {selectedGuardia.cuidador?.nombre || 'Sin cuidador'} (ID {selectedGuardia.cuidador?.id || 'N/A'})</p>
-                <p><span className="font-semibold">Paciente:</span> {selectedGuardia.paciente?.nombre || 'Sin paciente'} (ID {selectedGuardia.paciente?.id || 'N/A'})</p>
-                <p><span className="font-semibold">Horas:</span> {selectedGuardia.horasTrabajadas || 0}h</p>
-                <p><span className="font-semibold">Informe:</span> {selectedGuardia.informe || 'Sin informe'}</p>
-              </div>
-            </Card>
-          )}
-        />
+             )}
+           </Card>
+        )}
       </div>
     </AdminLayout>
   )

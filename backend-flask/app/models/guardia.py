@@ -11,7 +11,10 @@ class Guardia(db.Model):
     estado = db.Column(db.String(50), default="Programado") # Programado, En Progreso, Completado
     horas_trabajadas = db.Column(db.Float, default=0)
     informe = db.Column(db.Text)
-    cuidador_id = db.Column(db.Integer, db.ForeignKey("cuidadores.id"), nullable=False)
+    estado_informe = db.Column(db.String(50), default="Pendiente") # Pendiente, Aprobado, Requiere Revisión
+    calificacion = db.Column(db.Integer, nullable=True) # 1 to 5
+    comentario_calificacion = db.Column(db.Text, nullable=True)
+    cuidador_id = db.Column(db.Integer, db.ForeignKey("cuidadores.id"), nullable=True)
     paciente_id = db.Column(db.Integer, db.ForeignKey("pacientes.id"), nullable=False)
 
     def to_dict(self):
@@ -24,6 +27,9 @@ class Guardia(db.Model):
             "estado": self.estado,
             "horasTrabajadas": self.horas_trabajadas,
             "informe": self.informe,
+            "estadoInforme": self.estado_informe,
+            "calificacion": self.calificacion,
+            "comentarioCalificacion": self.comentario_calificacion,
             "cuidador": self.cuidador.to_dict() if self.cuidador else None,
             "paciente": self.paciente.to_dict() if self.paciente else None
         }
