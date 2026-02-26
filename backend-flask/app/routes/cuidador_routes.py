@@ -7,7 +7,7 @@ cuidador_bp = Blueprint("cuidadores", __name__, url_prefix="/cuidadores")
 
 @cuidador_bp.route("/", methods=["GET"])
 @jwt_required()
-@rol_requerido("admin")
+@rol_requerido("admin", "cuidador", "familia")
 def obtener_todos():
     pagina = request.args.get("pagina", 1, type=int)
     por_pagina = request.args.get("por_pagina", 10, type=int)
@@ -16,7 +16,7 @@ def obtener_todos():
 
 @cuidador_bp.route("/<int:id>", methods=["GET"])
 @jwt_required()
-@rol_requerido("admin")
+@rol_requerido("admin", "cuidador", "familia")
 def obtener_por_id(id):
     cuidador = cuidador_service.obtener_cuidador_por_id(id)
     if cuidador:
@@ -24,8 +24,6 @@ def obtener_por_id(id):
     return jsonify({"error": "Cuidador no encontrado"}), 404
 
 @cuidador_bp.route("/", methods=["POST"])
-@jwt_required()
-@rol_requerido("admin")
 def crear():
     datos = request.get_json()
     resultado = cuidador_service.crear_cuidador(datos)

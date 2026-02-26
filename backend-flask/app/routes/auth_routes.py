@@ -32,13 +32,18 @@ def login():
     return jsonify({
         "mensaje": "Login exitoso",
         "token": token,
-        "usuario": {
-            "id": usuario.id,
-            "email": usuario.email,
-            "rol": usuario.rol
-        }
+        "usuario": usuario.to_dict()
     }), 200
 
+
+@auth_bp.route('/me', methods=['GET'])
+@jwt_required()
+def me():
+    current_user_id = get_jwt_identity()
+    usuario = Usuario.query.get(current_user_id)
+    if not usuario:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+    return jsonify(usuario.to_dict()), 200
 
 @auth_bp.route('/cambiar-password', methods=['PUT'])
 @jwt_required()

@@ -10,12 +10,19 @@ class Usuario(db.Model):
     # los roles pueden ser admin, cuidador, familia
     rol = db.Column(db.String(20), nullable = False)
 
-    cuidador = db.relationship("Cuidador", backref="usuario", uselist=False, cascade="all, delete-orphan")
-    paciente = db.relationship("Paciente", backref="usuario", uselist=False, cascade="all, delete-orphan")
+    cuidador_preferido_id = db.Column(db.Integer, db.ForeignKey('cuidadores.id'), nullable=True)
+    # Relationship to the preferred caregiver
+    cuidador_preferido = db.relationship("Cuidador", foreign_keys=[cuidador_preferido_id], uselist=False)
+
+    # Relationship to the caregiver profile if this user IS a caregiver
+    # Use string for foreign_keys to avoid import issues
+    cuidador = db.relationship("Cuidador", backref="usuario", uselist=False, cascade="all, delete-orphan", foreign_keys="Cuidador.usuario_id")
+    pacientes = db.relationship("Paciente", backref="usuario", lazy=True, cascade="all, delete-orphan")
 
     def to_dict(self):
         return {
             "id": self.id,
             "email": self.email,
-            "rol": self.rol
+            "rol": self.rol,
+            "cuidador_preferido_id": self.cuidador_preferido_id
         }
