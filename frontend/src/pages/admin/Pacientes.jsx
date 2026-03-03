@@ -140,6 +140,18 @@ export default function Pacientes() {
     return target.includes(search.trim().toLowerCase())
   })
 
+  const getPatientShifts = (patientId) => {
+    const today = new Date().toISOString().split('T')[0]
+    const all = guardias
+      .filter((g) => g.paciente?.id === patientId)
+      .sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
+
+    const futuras = all.filter((g) => g.fecha >= today)
+    const previas = all.filter((g) => g.fecha < today).reverse()
+
+    return { futuras, previas }
+  }
+
   return (
     <AdminLayout title="Gestión de Pacientes">
       <div className="p-8 space-y-6 bg-[#f6f7f8] min-h-full">
@@ -239,6 +251,9 @@ export default function Pacientes() {
                             </button>
                         </div>
                         {selectedPaciente?.id === paciente.id && (
+                          (() => {
+                          const shifts = getPatientShifts(paciente.id)
+                          return (
                            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                               <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
                                   <div className="p-6 border-b border-[#e7edf3] flex justify-between items-center">
@@ -273,6 +288,36 @@ export default function Pacientes() {
                                                   <p className="text-sm text-[#0d141b]">{paciente.contactoFamilia || 'No especificado'}</p>
                                               </div>
                                           </div>
+
+                                          <div className="pt-2">
+                                              <p className="text-xs font-bold text-[#4c739a] uppercase mb-2">Próximas Atenciones</p>
+                                              {shifts.futuras.length === 0 ? (
+                                                <p className="text-sm text-[#4c739a]">Sin atenciones futuras</p>
+                                              ) : (
+                                                <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
+                                                  {shifts.futuras.slice(0, 5).map((g) => (
+                                                    <p key={g.id} className="text-sm text-[#0d141b]">
+                                                      {g.fecha} · {g.horaInicio || g.hora_inicio || '--:--'} - {g.horaFin || g.hora_fin || '--:--'}
+                                                    </p>
+                                                  ))}
+                                                </div>
+                                              )}
+                                          </div>
+
+                                          <div className="pt-1">
+                                              <p className="text-xs font-bold text-[#4c739a] uppercase mb-2">Atenciones Previas</p>
+                                              {shifts.previas.length === 0 ? (
+                                                <p className="text-sm text-[#4c739a]">Sin atenciones previas</p>
+                                              ) : (
+                                                <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
+                                                  {shifts.previas.slice(0, 5).map((g) => (
+                                                    <p key={g.id} className="text-sm text-[#0d141b]">
+                                                      {g.fecha} · {g.horaInicio || g.hora_inicio || '--:--'} - {g.horaFin || g.hora_fin || '--:--'}
+                                                    </p>
+                                                  ))}
+                                                </div>
+                                              )}
+                                          </div>
                                       </div>
                                   </div>
                                   <div className="p-4 bg-[#f6f7f8] text-right">
@@ -280,6 +325,8 @@ export default function Pacientes() {
                                   </div>
                               </div>
                            </div>
+                          )
+                          })()
                         )}
                       </td>
                     </tr>

@@ -59,6 +59,16 @@ def crear():
 @rol_requerido("admin", "familia")
 def actualizar(id):
     datos = request.get_json()
+    usuario_id = int(get_jwt_identity())
+    usuario = Usuario.query.get(usuario_id)
+
+    if usuario.rol == "familia":
+        paciente_actual = paciente_service.obtener_paciente_por_id(id)
+        if not paciente_actual:
+            return jsonify({"error": "Paciente no encontrado"}), 404
+        if paciente_actual.get("usuario_id") != usuario_id:
+            return jsonify({"error": "No tiene permiso"}), 403
+
     resultado = paciente_service.actualizar_paciente(id, datos)
     if isinstance(resultado, tuple):
         return jsonify(resultado[0]), resultado[1]

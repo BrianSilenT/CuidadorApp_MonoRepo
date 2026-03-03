@@ -82,6 +82,11 @@ export default function FamilyDashboard() {
     })
   }
 
+    const isAcceptedShift = (guardia) => {
+        const estado = (guardia?.estado || '').toLowerCase()
+        return estado === 'programado' || estado === 'en progreso' || estado === 'completado'
+    }
+
   const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1))
   const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1))
 
@@ -199,10 +204,10 @@ export default function FamilyDashboard() {
                                     <div className="space-y-1 overflow-y-auto max-h-[90px]">
                                         {dayGuardias.map((g) => (
                                             <div key={g.id} className={`text-[10px] p-1 rounded border truncate cursor-pointer hover:shadow-sm ${
-                                                g.cuidador_id || (g.cuidador && g.cuidador.id) ? 'bg-green-50 border-green-200 text-green-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800'
+                                                isAcceptedShift(g) ? 'bg-green-50 border-green-200 text-green-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800'
                                             }`}>
                                                 <div className="font-semibold">{g.hora_inicio || g.horaInicio} - {g.hora_fin || g.horaFin}</div>
-                                                <div>{g.cuidador ? g.cuidador.nombre : 'Solicitud Pendiente'}</div>
+                                                <div>{isAcceptedShift(g) && g.cuidador ? g.cuidador.nombre : 'Solicitud Pendiente'}</div>
                                             </div>
                                         ))}
                                     </div>
@@ -244,9 +249,9 @@ export default function FamilyDashboard() {
                                             {format(parseISO(g.fecha), "d 'de' MMMM", { locale: es })}
                                         </span>
                                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                                            g.cuidador_id || (g.cuidador && g.cuidador.id) ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                                            isAcceptedShift(g) ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                                         }`}>
-                                            {g.cuidador_id || (g.cuidador && g.cuidador.id) ? 'Confirmado' : 'Pendiente'}
+                                            {isAcceptedShift(g) ? 'Confirmado' : 'Pendiente'}
                                         </span>
                                     </div>
                                     <div className="text-xs text-gray-600 flex items-center gap-1 mb-1">
@@ -255,7 +260,7 @@ export default function FamilyDashboard() {
                                     </div>
                                     <div className="text-xs text-gray-500 flex items-center gap-1">
                                         <span className="material-icons text-[14px]">person</span>
-                                        {g.cuidador ? g.cuidador.nombre : 'Esperando asignación...'}
+                                        {isAcceptedShift(g) && g.cuidador ? g.cuidador.nombre : 'Esperando confirmación...'}
                                     </div>
                                     <div className="text-xs text-gray-400 mt-1 pl-5">
                                         {g.paciente ? g.paciente.nombre : 'Paciente...'}

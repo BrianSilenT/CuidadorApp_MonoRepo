@@ -14,9 +14,9 @@ export default function CaregiverLogin() {
           <h2 className="text-xl font-bold leading-tight tracking-tight">CuidadorApp</h2>
         </Link>
         <div className="hidden md:flex items-center gap-6">
-          <button className="text-sm font-medium text-[#4c739a] hover:text-[#2b8cee]">Centro de Ayuda</button>
-          <button className="text-sm font-medium text-[#4c739a] hover:text-[#2b8cee]">Contacto Soporte</button>
-          <button className="h-10 px-4 rounded-lg border border-[#2b8cee] text-[#2b8cee] text-sm font-bold">Registrar Institución</button>
+          <a href="mailto:soporte@cuidadorapp.com?subject=Centro%20de%20Ayuda" className="text-sm font-medium text-[#4c739a] hover:text-[#2b8cee]">Centro de Ayuda</a>
+          <a href="mailto:soporte@cuidadorapp.com?subject=Soporte%20Cuidador" className="text-sm font-medium text-[#4c739a] hover:text-[#2b8cee]">Contacto Soporte</a>
+          <Link to="/caregiver/register" className="h-10 px-4 rounded-lg border border-[#2b8cee] text-[#2b8cee] text-sm font-bold inline-flex items-center">Registrar Institución</Link>
         </div>
         </div>
       </header>

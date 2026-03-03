@@ -4,7 +4,7 @@ import Card from '../../components/common/Card'
 import Badge from '../../components/common/Badge'
 import Button from '../../components/common/Button'
 import PageHeader from '../../components/common/PageHeader'
-import { LoadingState, EmptyState, ErrorState } from '../../components/common/DataState'
+import { ErrorState } from '../../components/common/DataState'
 import { guardiaService, unwrapList } from '../../services/api'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -12,6 +12,7 @@ import { es } from 'date-fns/locale'
 export default function Guardias() {
   const [activeTab, setActiveTab] = useState('upcoming')
   const [guardias, setGuardias] = useState([])
+  const [selectedGuardia, setSelectedGuardia] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   
@@ -25,9 +26,9 @@ export default function Guardias() {
     } catch (err) {
       console.error(err)
       if (err.response && err.response.status === 403) {
-        setError("No tienes permisos de administrador para ver esta sección. Por favor, intenta cerrar sesión e ingresar nuevamente.")
+        setError('No tienes permisos de administrador para ver esta sección.')
       } else {
-        setError("Error al cargar los turnos. Intenta nuevamente.")
+        setError('Error al cargar los turnos.')
       }
     } finally {
       setLoading(false)
@@ -40,12 +41,11 @@ export default function Guardias() {
 
   const filteredGuardias = useMemo(() => {
     const now = new Date()
-    now.setHours(0, 0, 0, 0) // Compare dates only
+    now.setHours(0, 0, 0, 0)
     
     return guardias
       .filter(g => {
         if (!g.fecha) return false
-        // Fix timezone offset issue by treating YYYY-MM-DD as local
         const [year, month, day] = g.fecha.split('-').map(Number)
         const d = new Date(year, month - 1, day)
         
@@ -59,12 +59,31 @@ export default function Guardias() {
   }, [guardias, activeTab])
 
   const getStatusBadge = (estado) => {
-    // Normalize string
     const s = (estado || '').toLowerCase()
     if (s.includes('complet') || s.includes('finaliz')) return <Badge variant="success">Completado</Badge>
     if (s.includes('progre') || s.includes('curso')) return <Badge variant="info">En Curso</Badge>
     if (s.includes('cancel')) return <Badge variant="error">Cancelado</Badge>
     return <Badge variant="warning">Programado</Badge>
+  }
+
+  const canCancel = (guardia) => {
+    const estado = (guardia?.estado || '').toLowerCase()
+    return estado !== 'completado' && estado !== 'cancelado'
+  }
+
+  const handleCancelGuardia = async (guardia) => {
+    const confirmed = window.confirm('¿Deseas cancelar esta cita?')
+    if (!confirmed) return
+
+    try {
+      await guardiaService.cancel(guardia.id)
+      await loadGuardias()
+      if (selectedGuardia?.id === guardia.id) {
+        setSelectedGuardia((prev) => ({ ...prev, estado: 'Cancelado' }))
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || 'No se pudo cancelar la cita.')
+    }
   }
 
   return (
@@ -80,7 +99,6 @@ export default function Guardias() {
         >
             <div className="flex gap-2">
                  <Button onClick={loadGuardias} variant="secondary">Actualizar</Button>
-                 <Button onClick={() => alert('Función de crear turno en desarrollo')}>+ Nuevo Turno</Button>
             </div>
         </PageHeader>
 
@@ -161,7 +179,12 @@ export default function Guardias() {
                             {getStatusBadge(guardia.estado)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button className="text-indigo-600 hover:text-indigo-900">Editar</button>
+                            <div className="flex items-center justify-end gap-3">
+                              {canCancel(guardia) && (
+                                <button onClick={() => handleCancelGuardia(guardia)} className="text-red-600 hover:text-red-800">Cancelar</button>
+                              )}
+                              <button onClick={() => setSelectedGuardia(guardia)} className="text-indigo-600 hover:text-indigo-900">Ver detalle</button>
+                            </div>
                         </td>
                       </tr>
                     ))}
@@ -170,6 +193,37 @@ export default function Guardias() {
                 </div>
              )}
            </Card>
+        )}
+
+        {selectedGuardia && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 w-full max-w-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">Detalle del turno</h3>
+                <button onClick={() => setSelectedGuardia(null)} className="text-[#4c739a] hover:text-[#0d141b]">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <div className="space-y-2 text-sm text-[#0d141b]">
+                <p><strong>Fecha:</strong> {selectedGuardia.fecha}</p>
+                <p><strong>Horario:</strong> {selectedGuardia.horaInicio} - {selectedGuardia.horaFin}</p>
+                <p><strong>Cuidador:</strong> {selectedGuardia.cuidador?.nombre || 'Sin asignar'}</p>
+                <p><strong>Paciente:</strong> {selectedGuardia.paciente?.nombre || 'Sin paciente'}</p>
+                <p><strong>Estado:</strong> {selectedGuardia.estado || '-'}</p>
+                <p><strong>Ubicación:</strong> {selectedGuardia.ubicacion || 'No especificada'}</p>
+              </div>
+              {canCancel(selectedGuardia) && (
+                <div className="mt-5 flex justify-end">
+                  <button
+                    onClick={() => handleCancelGuardia(selectedGuardia)}
+                    className="px-4 py-2 rounded-lg border border-red-200 text-sm font-semibold text-red-700 hover:bg-red-50"
+                  >
+                    Cancelar cita
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </AdminLayout>

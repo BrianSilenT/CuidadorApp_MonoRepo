@@ -1,28 +1,50 @@
-import Sidebar from '../common/Sidebar'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import RoleLayout from './RoleLayout'
+import useLogout from '../../hooks/useLogout'
+import { cuidadorService, unwrapList } from '../../services/api'
 
 export default function AdminLayout({ children, title }) {
   const location = useLocation()
-  const menuItems = [
+  const logout = useLogout('/admin/login')
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    const loadPending = async () => {
+      try {
+        const response = await cuidadorService.getAll()
+        const rows = unwrapList(response.data)
+        setPendingCount(rows.filter((item) => item.activo === false).length)
+      } catch {
+        setPendingCount(0)
+      }
+    }
+
+    loadPending()
+  }, [location.pathname])
+
+  const menuItems = useMemo(() => [
     { icon: 'dashboard', label: 'Resumen', path: '/admin/dashboard' },
     { icon: 'groups', label: 'Pacientes', path: '/admin/pacientes' },
     { icon: 'medical_services', label: 'Cuidadores', path: '/admin/cuidadores' },
+    { icon: 'person_add', label: 'Solicitudes', path: '/admin/solicitudes-cuidadores', badge: pendingCount },
     { icon: 'schedule', label: 'Turnos', path: '/admin/guardias' },
     { icon: 'description', label: 'Reportes', path: '/admin/reportes' },
     { icon: 'payments', label: 'Pagos', path: '/admin/pagos' }
-  ]
+  ], [pendingCount])
   const activeMenuTitle = menuItems.find((item) => item.path === location.pathname)?.label
   const headerTitle = title || activeMenuTitle || 'Panel de Administración'
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar title="CuidadorApp" subtitle="Administración" menuItems={menuItems} />
-      <main className="flex-1 flex flex-col overflow-y-auto bg-[#f6f7f8]">
-        <header className="h-16 border-b border-[#e7edf3] bg-white flex items-center justify-between px-8 sticky top-0 z-10">
-          <h2 className="text-xl font-bold tracking-tight">{headerTitle}</h2>
-        </header>
-        {children}
-      </main>
-    </div>
+    <RoleLayout
+      title={title}
+      headerTitle={headerTitle}
+      sidebarTitle="CuidadorApp"
+      sidebarSubtitle="Administración"
+      menuItems={menuItems}
+      onLogout={logout}
+    >
+      {children}
+    </RoleLayout>
   )
 }

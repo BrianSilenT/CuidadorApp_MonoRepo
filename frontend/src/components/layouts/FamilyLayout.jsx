@@ -1,8 +1,10 @@
-import Sidebar from '../common/Sidebar'
 import { useLocation } from 'react-router-dom'
+import RoleLayout from './RoleLayout'
+import useLogout from '../../hooks/useLogout'
 
 export default function FamilyLayout({ children, title }) {
   const location = useLocation()
+  const logout = useLogout('/family/login')
   const menuItems = [
     { icon: 'dashboard', label: 'Agenda y Reservas', path: '/family/dashboard' },
     { icon: 'medical_information', label: 'Historial Médico', path: '/family/medical-records' },
@@ -13,14 +15,15 @@ export default function FamilyLayout({ children, title }) {
   const headerTitle = title || activeMenuTitle || 'Portal Familiar'
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar title="CuidadorApp" subtitle="Familia: John Doe" menuItems={menuItems} />
-      <main className="flex-1 flex flex-col overflow-y-auto bg-[#f6f7f8]">
-        <header className="h-16 border-b border-[#e7edf3] bg-white flex items-center justify-between px-8 sticky top-0 z-10">
-          <h2 className="text-xl font-bold tracking-tight">{headerTitle}</h2>
-        </header>
-        {children}
-      </main>
-    </div>
+    <RoleLayout
+      title={title}
+      headerTitle={headerTitle}
+      sidebarTitle="CuidadorApp"
+      sidebarSubtitle="Portal Familiar"
+      menuItems={menuItems}
+      onLogout={logout}
+    >
+      {children}
+    </RoleLayout>
   )
 }

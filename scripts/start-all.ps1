@@ -42,7 +42,7 @@ $env:FLASK_APP = 'run.py'
 & $backendPython -m flask db upgrade | Out-Host
 
 Write-Host 'Ejecutando seed de usuarios de prueba...' -ForegroundColor Yellow
-& $backendPython scripts\seed_test_users.py | Out-Host
+& $backendPython seed.py | Out-Host
 Pop-Location
 
 if (-not (Test-Path $frontendEnv)) {
@@ -88,11 +88,11 @@ $frontendProc.Id | Set-Content -Path $frontendPidFile -Encoding UTF8
 Write-Host ''
 Write-Host 'Aplicación iniciada.' -ForegroundColor Cyan
 Write-Host "Backend:  http://127.0.0.1:5000"
-Write-Host "Frontend: http://127.0.0.1:5173"
+Write-Host "Frontend: http://127.0.0.1:3000"
 Write-Host ''
 Write-Host 'Usuarios de prueba:' -ForegroundColor Cyan
-Write-Host '  admin@cuidadorapp.com / Admin123!'
-Write-Host '  cuidador@cuidadorapp.com / Cuidador123!'
-Write-Host '  familia@cuidadorapp.com / Familia123!'
+Write-Host '  admin@cuidadorapp.com / admin123'
+Write-Host '  cuidador@cuidadorapp.com / cuidador123'
+Write-Host '  familia@cuidadorapp.com / familia123'
 Write-Host ''
 Write-Host "Para detener ambos: .\scripts\stop-all.ps1"

@@ -12,7 +12,6 @@ export default function AdminDashboard() {
   const [pacientes, setPacientes] = useState([])
   const [guardias, setGuardias] = useState([])
   const [pagos, setPagos] = useState([])
-  const [reviews, setReviews] = useState([])
 
   const loadData = async () => {
     try {
@@ -39,7 +38,6 @@ export default function AdminDashboard() {
 
   const cuidadoresActivos = useMemo(() => cuidadores.filter((item) => item.activo).length, [cuidadores])
   const reportesPendientes = useMemo(() => guardias.filter((item) => item.estadoInforme === 'Pendiente' && item.informe).length, [guardias])
-  const pagosPendientes = useMemo(() => pagos.filter((item) => !item.confirmado).length, [pagos])
   const montoPendiente = useMemo(
     () => pagos.filter((item) => !item.confirmado).reduce((sum, item) => sum + (item.monto || 0), 0),
     [pagos]

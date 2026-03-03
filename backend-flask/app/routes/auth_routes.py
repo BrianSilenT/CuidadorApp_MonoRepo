@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.extensions import bcrypt, db, tokens_revocados
 from app.models.usuario import Usuario
+from app.models.cuidador import Cuidador
 from app.services.usuario_service import obtener_usuario_por_email
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 
@@ -25,6 +26,13 @@ def login():
     password_valida = bcrypt.check_password_hash(usuario.password, datos["password"])
     if not password_valida:
         return jsonify({"error": "Credenciales inválidas"}), 401
+
+    if usuario.rol == "cuidador":
+        perfil_cuidador = Cuidador.query.filter_by(usuario_id=usuario.id).first()
+        if not perfil_cuidador:
+            return jsonify({"error": "Tu cuenta de cuidador no tiene perfil asociado"}), 403
+        if not perfil_cuidador.activo:
+            return jsonify({"error": "Tu solicitud de registro está pendiente de aprobación por un administrador"}), 403
 
     # Crear el token JWT
     token = create_access_token(identity=str(usuario.id))

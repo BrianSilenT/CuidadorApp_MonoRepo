@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 import FamilyLayout from '../../components/layouts/FamilyLayout'
-import Input from '../../components/common/Input'
 import PageHeader from '../../components/common/PageHeader'
 import { LoadingState, EmptyState, ErrorState } from '../../components/common/DataState'
 import { guardiaService, unwrapList, pacienteService } from '../../services/api'
@@ -13,6 +12,7 @@ export default function History() {
   const [pacientes, setPacientes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedReport, setSelectedReport] = useState(null)
   
   // Filters
   const [filterPaciente, setFilterPaciente] = useState('')
@@ -67,6 +67,23 @@ export default function History() {
         (item.informe || '').replace(/\n/g, ' ')
       ])
     })
+  }
+
+  const canCancel = (item) => {
+    const estado = (item.estado || '').toLowerCase()
+    return estado !== 'completado' && estado !== 'cancelado'
+  }
+
+  const handleCancelShift = async (item) => {
+    const confirmed = window.confirm('¿Deseas cancelar esta cita?')
+    if (!confirmed) return
+
+    try {
+      await guardiaService.cancel(item.id)
+      await loadData()
+    } catch (err) {
+      alert(err.response?.data?.error || 'No se pudo cancelar la cita.')
+    }
   }
 
   return (
@@ -143,7 +160,7 @@ export default function History() {
                       <th className="text-left py-4 px-6 text-xs font-bold uppercase tracking-wider text-[#4c739a]">Paciente</th>
                       <th className="text-left py-4 px-6 text-xs font-bold uppercase tracking-wider text-[#4c739a]">Cuidador</th>
                       <th className="text-left py-4 px-6 text-xs font-bold uppercase tracking-wider text-[#4c739a]">Estado</th>
-                      <th className="text-right py-4 px-6 text-xs font-bold uppercase tracking-wider text-[#4c739a]">Informe</th>
+                      <th className="text-right py-4 px-6 text-xs font-bold uppercase tracking-wider text-[#4c739a]">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -188,16 +205,26 @@ export default function History() {
                             </span>
                         </td>
                         <td className="py-4 px-6 text-right">
-                          {item.informe ? (
-                            <button 
-                                onClick={() => window.alert(item.informe)}
+                          <div className="flex justify-end gap-2">
+                            {item.informe ? (
+                              <button
+                                onClick={() => setSelectedReport(item)}
                                 className="text-xs font-bold text-[#2b8cee] hover:text-blue-700 border border-[#2b8cee] hover:bg-blue-50 px-3 py-1.5 rounded-lg transition"
-                            >
+                              >
                                 Ver reporte
-                            </button>
-                          ) : (
-                            <span className="text-xs text-gray-400 italic">Sin reporte</span>
-                          )}
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-400 italic">Sin reporte</span>
+                            )}
+                            {canCancel(item) && (
+                              <button
+                                onClick={() => handleCancelShift(item)}
+                                className="text-xs font-bold text-red-600 hover:text-red-700 border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded-lg transition"
+                              >
+                                Cancelar cita
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -212,6 +239,32 @@ export default function History() {
             )}
           </div>
         </div>
+
+        {selectedReport && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-[#0d141b]">Reporte de atención</h3>
+                <button onClick={() => setSelectedReport(null)} className="text-[#4c739a] hover:text-[#0d141b]">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <div className="space-y-2 text-sm text-[#0d141b] mb-4">
+                <p><strong>Fecha:</strong> {selectedReport.fecha}</p>
+                <p><strong>Paciente:</strong> {selectedReport.paciente?.nombre || 'Sin paciente'}</p>
+                <p><strong>Cuidador:</strong> {selectedReport.cuidador?.nombre || 'Sin cuidador'}</p>
+              </div>
+              <div className="bg-[#f6f7f8] rounded-lg p-4 text-sm text-[#0d141b] whitespace-pre-line">
+                {selectedReport.informe}
+              </div>
+              <div className="flex justify-end mt-4">
+                <button onClick={() => setSelectedReport(null)} className="px-4 py-2 rounded-lg border border-[#e7edf3] text-sm font-semibold text-[#4c739a] hover:bg-[#f6f7f8]">
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </FamilyLayout>
   )

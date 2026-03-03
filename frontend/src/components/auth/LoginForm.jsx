@@ -102,7 +102,7 @@ export default function LoginForm({ role }) {
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center">
             <label className="text-[#0d141b] text-sm font-semibold">Contraseña</label>
-            <a href="#" className="text-[#2b8cee] text-xs font-bold hover:underline">
+            <a href="mailto:soporte@cuidadorapp.com?subject=Recuperar%20contrase%C3%B1a" className="text-[#2b8cee] text-xs font-bold hover:underline">
               ¿Olvidaste?
             </a>
           </div>

@@ -36,6 +36,11 @@ export default function Sidebar({ title, subtitle, menuItems = [] }) {
             >
               <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
               <span className="text-sm hidden md:inline">{item.label}</span>
+              {item.badge > 0 && (
+                <span className="ml-auto hidden md:inline-flex min-w-5 h-5 px-1 items-center justify-center rounded-full bg-[#2b8cee] text-white text-[10px] font-bold">
+                  {item.badge}
+                </span>
+              )}
             </Link>
           )
         })}

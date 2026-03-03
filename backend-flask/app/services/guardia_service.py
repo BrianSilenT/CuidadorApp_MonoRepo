@@ -3,19 +3,11 @@ from app.models.guardia import Guardia
 from app.models.cuidador import Cuidador
 from app.models.paciente import Paciente
 from datetime import datetime
+from app.services.pagination import build_paginated_response
 
 def obtener_todas_guardias(pagina=1, por_pagina=10):
     paginacion = Guardia.query.paginate(page=pagina, per_page=por_pagina, error_out=False)
-    listado = []
-    for g in paginacion.items:
-        listado.append(g.to_dict())
-    return {
-        "datos": listado,
-        "pagina": paginacion.page,
-        "por_pagina": paginacion.per_page,
-        "total": paginacion.total,
-        "paginas": paginacion.pages
-    }
+    return build_paginated_response(paginacion, lambda g: g.to_dict())
 
 def obtener_guardia_por_id(id):
     guardia = Guardia.query.get(id)
@@ -25,29 +17,11 @@ def obtener_guardia_por_id(id):
 
 def obtener_guardias_por_cuidador(cuidador_id, pagina=1, por_pagina=10):
     paginacion = Guardia.query.filter_by(cuidador_id=cuidador_id).paginate(page=pagina, per_page=por_pagina, error_out=False)
-    listado = []
-    for g in paginacion.items:
-        listado.append(g.to_dict())
-    return {
-        "datos": listado,
-        "pagina": paginacion.page,
-        "por_pagina": paginacion.per_page,
-        "total": paginacion.total,
-        "paginas": paginacion.pages
-    }
+    return build_paginated_response(paginacion, lambda g: g.to_dict())
 
 def obtener_guardias_por_paciente(paciente_id, pagina=1, por_pagina=10):
     paginacion = Guardia.query.filter_by(paciente_id=paciente_id).paginate(page=pagina, per_page=por_pagina, error_out=False)
-    listado = []
-    for g in paginacion.items:
-        listado.append(g.to_dict())
-    return {
-        "datos": listado,
-        "pagina": paginacion.page,
-        "por_pagina": paginacion.per_page,
-        "total": paginacion.total,
-        "paginas": paginacion.pages
-    }
+    return build_paginated_response(paginacion, lambda g: g.to_dict())
 
 def crear_guardia(datos):
     # Validaciones
@@ -138,9 +112,7 @@ def eliminar_guardia(id):
 
 def obtener_horas_por_cuidador(cuidador_id):
     guardias = Guardia.query.filter_by(cuidador_id=cuidador_id).all()
-    total_horas = 0
-    for g in guardias:
-        total_horas = total_horas + g.horas_trabajadas
+    total_horas = sum(g.horas_trabajadas for g in guardias)
     return {
         "cuidador_id": cuidador_id,
         "total_horas": total_horas,
@@ -153,9 +125,7 @@ def obtener_horas_por_cuidador_y_paciente(cuidador_id, paciente_id):
         cuidador_id=cuidador_id,
         paciente_id=paciente_id
     ).all()
-    total_horas = 0
-    for g in guardias:
-        total_horas = total_horas + g.horas_trabajadas
+    total_horas = sum(g.horas_trabajadas for g in guardias)
     return {
         "cuidador_id": cuidador_id,
         "paciente_id": paciente_id,
@@ -165,13 +135,4 @@ def obtener_horas_por_cuidador_y_paciente(cuidador_id, paciente_id):
 
 def obtener_guardias_por_familia(usuario_id, pagina=1, por_pagina=10):
     paginacion = Guardia.query.join(Paciente).filter(Paciente.usuario_id==usuario_id).paginate(page=pagina, per_page=por_pagina, error_out=False)
-    listado = []
-    for g in paginacion.items:
-        listado.append(g.to_dict())
-    return {
-        "datos": listado,
-        "pagina": paginacion.page,
-        "por_pagina": paginacion.per_page,
-        "total": paginacion.total,
-        "paginas": paginacion.pages
-    }
+    return build_paginated_response(paginacion, lambda g: g.to_dict())

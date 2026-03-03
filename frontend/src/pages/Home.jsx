@@ -15,12 +15,12 @@ export default function Home() {
           </Link>
         </div>
         <div className="flex gap-3">
-          <button className="flex min-w-[84px] items-center justify-center rounded-lg h-10 px-4 bg-[#e7edf3] text-[#0d141b] text-sm font-bold">
+          <a href="mailto:soporte@cuidadorapp.com?subject=Ayuda%20CuidadorApp" className="flex min-w-[84px] items-center justify-center rounded-lg h-10 px-4 bg-[#e7edf3] text-[#0d141b] text-sm font-bold">
             Ayuda
-          </button>
-          <button className="flex min-w-[84px] items-center justify-center rounded-lg h-10 px-4 bg-[#2b8cee] text-white text-sm font-bold">
+          </a>
+          <a href="mailto:soporte@cuidadorapp.com?subject=Contacto%20CuidadorApp" className="flex min-w-[84px] items-center justify-center rounded-lg h-10 px-4 bg-[#2b8cee] text-white text-sm font-bold">
             Contacto
-          </button>
+          </a>
         </div>
       </header>
       
@@ -60,14 +60,7 @@ export default function Home() {
           <p className="text-[#4c739a] text-sm">
             © 2024 CuidadorApp. Todos los derechos reservados.
           </p>
-          <div className="flex gap-6">
-            <a href="#" className="text-[#4c739a] hover:text-[#2b8cee] text-sm font-medium transition-colors">
-              Términos y condiciones
-            </a>
-            <a href="#" className="text-[#4c739a] hover:text-[#2b8cee] text-sm font-medium transition-colors">
-              Privacidad
-            </a>
-          </div>
+          <p className="text-[#4c739a] text-sm">Términos y privacidad disponibles bajo solicitud.</p>
         </div>
       </footer>
     </div>

@@ -18,6 +18,7 @@ export default function CaregiverRegister() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [pendingApproval, setPendingApproval] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -45,34 +46,17 @@ export default function CaregiverRegister() {
       
       const usuarioId = userRes.data.id
 
-      // 2. Crear perfil de cuidador
-      const cuidadorRes = await api.post('/cuidadores/', {
+      // 2. Crear perfil de cuidador en estado pendiente de aprobación
+      await api.post('/cuidadores/', {
         nombre: formData.nombre,
         documento: formData.documento,
         telefono: formData.telefono,
+        activo: false,
         usuario_id: usuarioId
       })
 
-      const cuidadorId = cuidadorRes.data.id
-
-      // 3. Iniciar sesión para obtener token y subir documento
-      let token = ''
       if (file) {
-        const loginRes = await api.post('/auth/login', {
-          email: formData.email,
-          password: formData.password
-        })
-        token = loginRes.data.token
-
-        const fileData = new FormData()
-        fileData.append('archivo', file)
-        fileData.append('tipo_documento', 'CV / Certificado')
-        await api.post(`/documentos/cuidador/${cuidadorId}`, fileData, {
-          headers: { 
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`
-          }
-        })
+        setPendingApproval(true)
       }
 
       setSuccess(true)
@@ -95,7 +79,10 @@ export default function CaregiverRegister() {
             <span className="material-symbols-outlined text-3xl">check_circle</span>
           </div>
           <h2 className="text-2xl font-bold text-[#0d141b] mb-2">¡Registro Exitoso!</h2>
-          <p className="text-[#4c739a] mb-6">Tu cuenta ha sido creada. Redirigiendo al inicio de sesión...</p>
+          <p className="text-[#4c739a] mb-6">Tu solicitud fue enviada. Un administrador debe aprobar tu cuenta antes de que puedas iniciar sesión.</p>
+          {pendingApproval && (
+            <p className="text-xs text-[#4c739a]">Subirás tu documentación cuando el administrador apruebe el registro.</p>
+          )}
         </div>
       </div>
     )

@@ -60,7 +60,7 @@ export default function Pagos() {
         if (activeTab === 'pending') {
             // It will disappear from pending, which is expected
         }
-    } catch (err) {
+    } catch {
         alert('Error al confirmar el pago.')
     } finally {
         setConfirmingId(null)
@@ -79,7 +79,6 @@ export default function Pagos() {
             ]}
         >
             <Button onClick={loadPagos} variant="secondary">Actualizar</Button>
-            <Button onClick={() => alert('Función de registro manual en desarrollo')}>+ Registrar Pago</Button>
         </PageHeader>
 
         {/* Tabs */}

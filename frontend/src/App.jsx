@@ -17,6 +17,7 @@ import AdminLogin from './pages/admin/Login'
 import AdminDashboard from './pages/admin/Dashboard'
 import Pacientes from './pages/admin/Pacientes'
 import Cuidadores from './pages/admin/Cuidadores'
+import SolicitudesCuidadores from './pages/admin/SolicitudesCuidadores'
 import Guardias from './pages/admin/Guardias'
 import Reportes from './pages/admin/Reportes'
 import Pagos from './pages/admin/Pagos'
@@ -34,7 +35,9 @@ function App() {
       <Route path="/family/support" element={<ProtectedRoute allowedRoles={['familia']}><FamilySupport /></ProtectedRoute>} />
       
       <Route path="/caregiver/login" element={<CaregiverLogin />} />
-      <Route path="/caregiver/register" element={<CaregiverRegister />} />        <Route path="/family/register" element={<FamilyRegister />} />      <Route path="/caregiver/dashboard" element={<ProtectedRoute allowedRoles={['cuidador']}><CaregiverDashboard /></ProtectedRoute>} />
+      <Route path="/caregiver/register" element={<CaregiverRegister />} />
+      <Route path="/family/register" element={<FamilyRegister />} />
+      <Route path="/caregiver/dashboard" element={<ProtectedRoute allowedRoles={['cuidador']}><CaregiverDashboard /></ProtectedRoute>} />
       <Route path="/caregiver/patient-logs" element={<ProtectedRoute allowedRoles={['cuidador']}><CaregiverPatientLogs /></ProtectedRoute>} />
       <Route path="/caregiver/incidents" element={<ProtectedRoute allowedRoles={['cuidador']}><CaregiverIncidents /></ProtectedRoute>} />
       <Route path="/caregiver/shift-reports" element={<ProtectedRoute allowedRoles={['cuidador']}><CaregiverShiftReports /></ProtectedRoute>} />
@@ -48,6 +51,7 @@ function App() {
       <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/pacientes" element={<ProtectedRoute allowedRoles={['admin']}><Pacientes /></ProtectedRoute>} />
       <Route path="/admin/cuidadores" element={<ProtectedRoute allowedRoles={['admin']}><Cuidadores /></ProtectedRoute>} />
+      <Route path="/admin/solicitudes-cuidadores" element={<ProtectedRoute allowedRoles={['admin']}><SolicitudesCuidadores /></ProtectedRoute>} />
       <Route path="/admin/guardias" element={<ProtectedRoute allowedRoles={['admin']}><Guardias /></ProtectedRoute>} />
       <Route path="/admin/reportes" element={<ProtectedRoute allowedRoles={['admin']}><Reportes /></ProtectedRoute>} />
       <Route path="/admin/pagos" element={<ProtectedRoute allowedRoles={['admin']}><Pagos /></ProtectedRoute>} />

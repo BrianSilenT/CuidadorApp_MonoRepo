@@ -13,9 +13,9 @@ export default function FamilyLogin() {
           </div>
           <h2 className="text-lg font-bold leading-tight tracking-tight">CuidadorApp</h2>
         </Link>
-        <button className="flex min-w-[84px] items-center justify-center rounded-lg h-10 px-4 bg-[#2b8cee] text-white text-sm font-bold">
+        <Link to="/family/register" className="flex min-w-[84px] items-center justify-center rounded-lg h-10 px-4 bg-[#2b8cee] text-white text-sm font-bold">
           Solicitar Cuidador
-        </button>
+        </Link>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-4 py-12">

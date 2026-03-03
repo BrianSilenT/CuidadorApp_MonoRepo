@@ -15,9 +15,7 @@ def obtener_resumen_general():
 
     # Calcular total de horas trabajadas
     guardias = Guardia.query.all()
-    total_horas = 0
-    for g in guardias:
-        total_horas = total_horas + g.horas_trabajadas
+    total_horas = sum(g.horas_trabajadas for g in guardias)
 
     # Pagos
     total_pagos = Pago.query.count()
@@ -54,24 +52,15 @@ def obtener_reporte_cuidadores():
 
     for cuidador in cuidadores:
         guardias = Guardia.query.filter_by(cuidador_id=cuidador.id).all()
-        total_horas = 0
-        for g in guardias:
-            total_horas = total_horas + g.horas_trabajadas
+        total_horas = sum(g.horas_trabajadas for g in guardias)
 
         # Pacientes atendidos por este cuidador (sin repetir)
-        pacientes_ids = set()
-        for g in guardias:
-            pacientes_ids.add(g.paciente_id)
+        pacientes_ids = {g.paciente_id for g in guardias}
 
         # Pagos del cuidador
         pagos = Pago.query.filter_by(cuidador_id=cuidador.id).all()
-        total_pagado = 0
-        total_pendiente = 0
-        for p in pagos:
-            if p.confirmado:
-                total_pagado = total_pagado + p.monto
-            else:
-                total_pendiente = total_pendiente + p.monto
+        total_pagado = sum(p.monto for p in pagos if p.confirmado)
+        total_pendiente = sum(p.monto for p in pagos if not p.confirmado)
 
         reporte.append({
             "cuidador": cuidador.to_dict(),
@@ -91,16 +80,9 @@ def obtener_reporte_pagos():
     """Reporte de pagos con totales"""
     pagos = Pago.query.all()
 
-    total_monto = 0
-    total_pagado = 0
-    total_pendiente = 0
-
-    for p in pagos:
-        total_monto = total_monto + p.monto
-        if p.confirmado:
-            total_pagado = total_pagado + p.monto
-        else:
-            total_pendiente = total_pendiente + p.monto
+    total_monto = sum(p.monto for p in pagos)
+    total_pagado = sum(p.monto for p in pagos if p.confirmado)
+    total_pendiente = sum(p.monto for p in pagos if not p.confirmado)
 
     return {
         "totalPagos": len(pagos),
@@ -126,9 +108,7 @@ def obtener_reporte_guardias_por_fecha(fecha_inicio, fecha_fin):
         Guardia.fecha <= fin
     ).all()
 
-    total_horas = 0
-    for g in guardias:
-        total_horas = total_horas + g.horas_trabajadas
+    total_horas = sum(g.horas_trabajadas for g in guardias)
 
     return {
         "fechaInicio": fecha_inicio,

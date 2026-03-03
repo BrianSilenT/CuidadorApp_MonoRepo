@@ -17,5 +17,6 @@ class Paciente(db.Model):
             "id": self.id,
             "nombre": self.nombre,
             "direccion": self.direccion,
-            "contactoFamilia": self.contacto_familia
+            "contactoFamilia": self.contacto_familia,
+            "usuario_id": self.usuario_id
         }

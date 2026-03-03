@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import AdminLayout from '../../components/layouts/AdminLayout'
 import Card from '../../components/common/Card'
 import StatCard from '../../components/common/StatCard'
 import PageHeader from '../../components/common/PageHeader'
 import { LoadingState, ErrorState } from '../../components/common/DataState'
-import { reporteService, unwrapList } from '../../services/api'
+import { reporteService, guardiaService, unwrapList } from '../../services/api'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -18,6 +19,10 @@ export default function Reportes() {
   })
   const [recentPayments, setRecentPayments] = useState([])
   const [topCuidadores, setTopCuidadores] = useState([])
+  const [allCuidadores, setAllCuidadores] = useState([])
+  const [selectedCaregiverId, setSelectedCaregiverId] = useState('')
+  const [selectedCaregiverReports, setSelectedCaregiverReports] = useState([])
+  const [reportsLoading, setReportsLoading] = useState(false)
 
   const loadData = async () => {
     setLoading(true)
@@ -30,8 +35,18 @@ export default function Reportes() {
       ])
 
       setStats(resumen.data)
-      setRecentPayments(unwrapList(pagosInfo.data).slice(0, 5)) // Top 5
-      setTopCuidadores(unwrapList(cuidadoresInfo.data).slice(0, 5))
+      const detallePagos = Array.isArray(pagosInfo.data?.detalle) ? pagosInfo.data.detalle : []
+      setRecentPayments(detallePagos.slice(0, 5))
+
+      const rawCuidadores = Array.isArray(cuidadoresInfo.data) ? cuidadoresInfo.data : unwrapList(cuidadoresInfo.data)
+      const cuidadores = rawCuidadores.map((item) => ({
+        ...(item.cuidador || {}),
+        totalHoras: item.totalHoras || 0,
+        totalGuardias: item.totalGuardias || 0,
+        pacientesAtendidos: item.pacientesAtendidos || 0
+      }))
+      setAllCuidadores(cuidadores)
+      setTopCuidadores(cuidadores.slice(0, 5))
 
     } catch (err) {
       console.error(err)
@@ -48,6 +63,31 @@ export default function Reportes() {
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    const loadCaregiverReports = async () => {
+      if (!selectedCaregiverId) {
+        setSelectedCaregiverReports([])
+        return
+      }
+
+      setReportsLoading(true)
+      try {
+        const response = await guardiaService.getByCuidador(selectedCaregiverId)
+        const guardias = unwrapList(response.data)
+        const withReports = guardias
+          .filter((item) => Boolean(item.informe))
+          .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+        setSelectedCaregiverReports(withReports)
+      } catch {
+        setSelectedCaregiverReports([])
+      } finally {
+        setReportsLoading(false)
+      }
+    }
+
+    loadCaregiverReports()
+  }, [selectedCaregiverId])
 
   return (
     <AdminLayout>
@@ -102,7 +142,7 @@ export default function Reportes() {
               <Card className="h-full">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-lg font-bold text-gray-900">Top Cuidadores (Horas)</h3>
-                  <button className="text-sm text-blue-600 hover:underline">Ver todos</button>
+                  <Link to="/admin/cuidadores" className="text-sm text-blue-600 hover:underline">Ver todos</Link>
                 </div>
                 {topCuidadores.length === 0 ? (
                   <p className="text-gray-500 text-sm">No hay datos suficientes.</p>
@@ -116,11 +156,11 @@ export default function Reportes() {
                           </div>
                           <div>
                             <p className="font-medium text-gray-900">{c.nombre} {c.apellido}</p>
-                            <p className="text-xs text-gray-500">{c.email}</p>
+                            <p className="text-xs text-gray-500">Guardias: {c.totalGuardias || 0} · Pacientes: {c.pacientesAtendidos || 0}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-gray-800">{c.horas_totales || 0}h</p>
+                          <p className="font-bold text-gray-800">{c.totalHoras || 0}h</p>
                           <p className="text-xs text-gray-500">Trabajadas</p>
                         </div>
                       </div>
@@ -133,7 +173,7 @@ export default function Reportes() {
               <Card className="h-full">
                  <div className="flex justify-between items-center mb-6">
                   <h3 className="text-lg font-bold text-gray-900">Últimos Pagos</h3>
-                  <button className="text-sm text-blue-600 hover:underline">Ver finanzas</button>
+                  <Link to="/admin/pagos" className="text-sm text-blue-600 hover:underline">Ver finanzas</Link>
                 </div>
                 {recentPayments.length === 0 ? (
                     <p className="text-gray-500 text-sm">No hay pagos registrados.</p>
@@ -167,6 +207,59 @@ export default function Reportes() {
                 )}
               </Card>
             </div>
+
+            <Card>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
+                <h3 className="text-lg font-bold text-gray-900">Reportes por Cuidador</h3>
+                <select
+                  className="border border-[#e7edf3] rounded-lg px-3 py-2 text-sm bg-white min-w-[260px]"
+                  value={selectedCaregiverId}
+                  onChange={(event) => setSelectedCaregiverId(event.target.value)}
+                >
+                  <option value="">Selecciona un cuidador</option>
+                  {allCuidadores.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {reportsLoading ? (
+                <LoadingState label="Cargando reportes del cuidador..." />
+              ) : selectedCaregiverId && selectedCaregiverReports.length === 0 ? (
+                <p className="text-sm text-gray-500">Este cuidador aún no tiene reportes con informe.</p>
+              ) : selectedCaregiverId ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-gray-500 uppercase bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3">Fecha</th>
+                        <th className="px-4 py-3">Paciente</th>
+                        <th className="px-4 py-3">Estado</th>
+                        <th className="px-4 py-3">Informe</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedCaregiverReports.map((item) => (
+                        <tr key={item.id} className="border-b last:border-0 hover:bg-gray-50">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {item.fecha ? format(new Date(item.fecha), 'dd/MM/yyyy', { locale: es }) : '-'}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">{item.paciente?.nombre || '-'}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">{item.estado || '-'}</td>
+                          <td className="px-4 py-3">
+                            <span className="line-clamp-2 text-gray-700">{item.informe}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">Selecciona un cuidador para ver sus reportes enviados.</p>
+              )}
+            </Card>
           </>
         )}
       </div>

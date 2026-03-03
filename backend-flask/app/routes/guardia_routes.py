@@ -1,9 +1,11 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.extensions import db
 from app.services import guardia_service
 from app.models.cuidador import Cuidador
 from app.models.usuario import Usuario
 from app.models.guardia import Guardia
+from app.models.paciente import Paciente
 from app.utils.permisos import rol_requerido
 
 guardia_bp = Blueprint("guardias", __name__, url_prefix="/guardias")
@@ -14,13 +16,43 @@ guardia_bp = Blueprint("guardias", __name__, url_prefix="/guardias")
 def obtener_todas():
     pagina = request.args.get("pagina", 1, type=int)
     por_pagina = request.args.get("por_pagina", 10, type=int)
-    resultado = guardia_service.obtener_todas_guardias(pagina, por_pagina)
+    usuario_id = int(get_jwt_identity())
+    usuario = Usuario.query.get(usuario_id)
+
+    if usuario.rol == "admin":
+        resultado = guardia_service.obtener_todas_guardias(pagina, por_pagina)
+    elif usuario.rol == "cuidador":
+        cuidador = Cuidador.query.filter_by(usuario_id=usuario.id).first()
+        if not cuidador:
+            return jsonify({"error": "No tienes un perfil de cuidador asociado"}), 403
+        resultado = guardia_service.obtener_guardias_por_cuidador(cuidador.id, pagina, por_pagina)
+    else:
+        resultado = guardia_service.obtener_guardias_por_familia(usuario_id, pagina, por_pagina)
+
     return jsonify(resultado), 200
 
 @guardia_bp.route("/<int:id>", methods=["GET"])
 @jwt_required()
 @rol_requerido("admin", "cuidador", "familia")
 def obtener_por_id(id):
+    usuario_id = int(get_jwt_identity())
+    usuario = Usuario.query.get(usuario_id)
+    guardia_model = Guardia.query.get(id)
+
+    if not guardia_model:
+        return jsonify({"error": "Guardia no encontrada"}), 404
+
+    if usuario.rol == "cuidador":
+        cuidador = Cuidador.query.filter_by(usuario_id=usuario.id).first()
+        if not cuidador:
+            return jsonify({"error": "No tienes un perfil de cuidador asociado"}), 403
+        if guardia_model.cuidador_id != cuidador.id:
+            return jsonify({"error": "No tienes permiso para ver esta guardia"}), 403
+
+    if usuario.rol == "familia":
+        if not guardia_model.paciente or guardia_model.paciente.usuario_id != usuario.id:
+            return jsonify({"error": "No tienes permiso para ver esta guardia"}), 403
+
     guardia = guardia_service.obtener_guardia_por_id(id)
     if guardia:
         return jsonify(guardia), 200
@@ -32,6 +64,19 @@ def obtener_por_id(id):
 def obtener_por_cuidador(cuidador_id):
     pagina = request.args.get("pagina", 1, type=int)
     por_pagina = request.args.get("por_pagina", 10, type=int)
+    usuario_id = int(get_jwt_identity())
+    usuario = Usuario.query.get(usuario_id)
+
+    if usuario.rol == "cuidador":
+        cuidador = Cuidador.query.filter_by(usuario_id=usuario.id).first()
+        if not cuidador:
+            return jsonify({"error": "No tienes un perfil de cuidador asociado"}), 403
+        if cuidador.id != cuidador_id:
+            return jsonify({"error": "No tienes permiso para ver guardias de otros cuidadores"}), 403
+
+    if usuario.rol == "familia":
+        return jsonify({"error": "No tienes permiso para esta acción"}), 403
+
     resultado = guardia_service.obtener_guardias_por_cuidador(cuidador_id, pagina, por_pagina)
     return jsonify(resultado), 200
 
@@ -41,7 +86,23 @@ def obtener_por_cuidador(cuidador_id):
 def obtener_por_paciente(paciente_id):
     pagina = request.args.get("pagina", 1, type=int)
     por_pagina = request.args.get("por_pagina", 10, type=int)
+    usuario_id = int(get_jwt_identity())
+    usuario = Usuario.query.get(usuario_id)
+
+    if usuario.rol == "familia":
+        paciente = Paciente.query.get(paciente_id)
+        if not paciente or paciente.usuario_id != usuario.id:
+            return jsonify({"error": "No tienes permiso para ver guardias de este paciente"}), 403
+
     resultado = guardia_service.obtener_guardias_por_paciente(paciente_id, pagina, por_pagina)
+
+    if usuario.rol == "cuidador":
+        cuidador = Cuidador.query.filter_by(usuario_id=usuario.id).first()
+        if not cuidador:
+            return jsonify({"error": "No tienes un perfil de cuidador asociado"}), 403
+        resultado["datos"] = [g for g in resultado.get("datos", []) if g.get("cuidador", {}).get("id") == cuidador.id]
+        resultado["total"] = len(resultado["datos"])
+
     return jsonify(resultado), 200
 
 @guardia_bp.route("/mis-guardias", methods=["GET"])
@@ -81,15 +142,16 @@ def crear():
         if not es_paciente_suyo:
              return jsonify({"error": "Este paciente no pertenece a su grupo familiar"}), 403
         
-        # Familia can create with null cuidador_id (Open Request)
-        # If family selects a caregiver, set as preferred and ensure state is 'Pendiente'
         cuidador_seleccionado_id = datos.get("cuidador_id")
         if cuidador_seleccionado_id:
             usuario.cuidador_preferido_id = cuidador_seleccionado_id
-            datos['estado'] = 'Pendiente' # Wait for caregiver acceptance
+            datos['estado'] = 'Pendiente'
         else:
-             # Even for open requests, it should be Pendiente until someone takes it
-             datos['estado'] = 'Pendiente'
+            if usuario.cuidador_preferido_id:
+                datos['cuidador_id'] = usuario.cuidador_preferido_id
+            else:
+                return jsonify({"error": "Debe seleccionar un cuidador para solicitar una guardia"}), 400
+            datos['estado'] = 'Pendiente'
 
     resultado = guardia_service.crear_guardia(datos)
     if isinstance(resultado, tuple):
@@ -98,7 +160,7 @@ def crear():
 
 @guardia_bp.route("/<int:id>", methods=["PUT"])
 @jwt_required()
-@rol_requerido("admin", "cuidador")
+@rol_requerido("admin", "cuidador", "familia")
 def actualizar(id):
     datos = request.get_json()
     usuario_id = get_jwt_identity()
@@ -115,10 +177,49 @@ def actualizar(id):
         if guardia.cuidador_id != cuidador.id:
             return jsonify({"error": "No puedes modificar guardias de otros cuidadores"}), 403
 
+    if usuario.rol == "familia":
+        guardia = Guardia.query.get(id)
+        if not guardia:
+            return jsonify({"error": "Guardia no encontrada"}), 404
+
+        if not guardia.paciente or guardia.paciente.usuario_id != usuario.id:
+            return jsonify({"error": "No tienes permiso para modificar esta guardia"}), 403
+
+        estado_solicitado = (datos or {}).get("estado")
+        if estado_solicitado != "Cancelado" or len((datos or {}).keys()) != 1:
+            return jsonify({"error": "La familia solo puede cancelar la guardia"}), 403
+
+        estado_actual = (guardia.estado or "").lower()
+        if estado_actual in ["completado", "cancelado"]:
+            return jsonify({"error": "Esta guardia no se puede cancelar"}), 400
+
     resultado = guardia_service.actualizar_guardia(id, datos)
     if isinstance(resultado, tuple):
         return jsonify(resultado[0]), resultado[1]
     return jsonify(resultado), 200
+
+@guardia_bp.route("/<int:id>/aceptar", methods=["PUT"])
+@jwt_required()
+@rol_requerido("cuidador")
+def aceptar_guardia(id):
+    usuario_id = int(get_jwt_identity())
+    usuario = Usuario.query.get(usuario_id)
+    cuidador = Cuidador.query.filter_by(usuario_id=usuario.id).first()
+    if not cuidador:
+        return jsonify({"error": "No tienes un perfil de cuidador asociado"}), 403
+
+    guardia = Guardia.query.get(id)
+    if not guardia:
+        return jsonify({"error": "Guardia no encontrada"}), 404
+
+    if guardia.cuidador_id and guardia.cuidador_id != cuidador.id:
+        return jsonify({"error": "No puedes aceptar guardias de otros cuidadores"}), 403
+
+    guardia.cuidador_id = cuidador.id
+    guardia.estado = "Programado"
+    db.session.commit()
+
+    return jsonify(guardia.to_dict()), 200
 
 @guardia_bp.route("/<int:id>", methods=["DELETE"])
 @jwt_required()

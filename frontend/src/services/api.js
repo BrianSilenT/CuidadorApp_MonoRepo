@@ -63,7 +63,9 @@ export const guardiaService = {
   ...baseGuardiaService,
   getMine: () => api.get('/guardias/mis-guardias'),
   getByPaciente: (id) => api.get(`/guardias/paciente/${id}`),
-  getByCuidador: (id) => api.get(`/guardias/cuidador/${id}`)
+  getByCuidador: (id) => api.get(`/guardias/cuidador/${id}`),
+  accept: (id) => api.put(`/guardias/${id}/aceptar`),
+  cancel: (id) => api.put(`/guardias/${id}`, { estado: 'Cancelado' })
 }
 
 export const pagoService = createService('pagos')

@@ -1,18 +1,10 @@
 from app.extensions import db
 from app.models.cuidador import Cuidador
+from app.services.pagination import build_paginated_response
 
 def obtener_todos_cuidadores(pagina=1, por_pagina=10):
     paginacion = Cuidador.query.paginate(page=pagina, per_page=por_pagina, error_out=False)
-    listado = []
-    for c in paginacion.items:
-        listado.append(c.to_dict())
-    return {
-        "datos": listado,
-        "pagina": paginacion.page,
-        "por_pagina": paginacion.per_page,
-        "total": paginacion.total,
-        "paginas": paginacion.pages
-    }
+    return build_paginated_response(paginacion, lambda c: c.to_dict())
 
 def obtener_cuidador_por_id(id):
     cuidador = Cuidador.query.get(id)
@@ -31,6 +23,7 @@ def crear_cuidador(datos):
         nombre=datos["nombre"],
         documento=datos["documento"],
         telefono=datos.get("telefono"),
+        activo=datos.get("activo", True),
         usuario_id=datos.get("usuario_id")
     )
     db.session.add(cuidador)
@@ -61,6 +54,14 @@ def eliminar_cuidador(id):
     cuidador = Cuidador.query.get(id)
     if not cuidador:
         return {"error": "Cuidador no encontrado"}, 404
+
+    if getattr(cuidador, "incidentes", None):
+        if len(cuidador.incidentes) > 0:
+            return {"error": "No se puede eliminar el cuidador porque tiene incidentes asociados"}, 400
+
+    if getattr(cuidador, "logs", None):
+        if len(cuidador.logs) > 0:
+            return {"error": "No se puede eliminar el cuidador porque tiene logs clínicos asociados"}, 400
 
     db.session.delete(cuidador)
     db.session.commit()

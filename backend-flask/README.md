@@ -5,7 +5,8 @@ API REST para gestionar una PYME de acompañantes/cuidadores de pacientes. Inclu
 ## Requisitos
 
 - Python 3.10+
-- PostgreSQL 12+
+- SQLite (por defecto, sin instalación adicional)
+- PostgreSQL 12+ (opcional)
 
 ## Instalación
 
@@ -46,10 +47,10 @@ Copiar el archivo de ejemplo y editar con tus credenciales:
 cp .env.example .env
 ```
 
-Contenido del `.env`:
+Contenido recomendado del `.env` para desarrollo local:
 
 ```env
-DATABASE_URL=postgresql://usuario:password@localhost:5432/cuidadorapp
+DATABASE_URL=sqlite:///cuidadorapp.db
 FLASK_APP=run.py
 FLASK_ENV=development
 JWT_SECRET_KEY=tu-clave-secreta-aqui
@@ -57,14 +58,16 @@ JWT_SECRET_KEY=tu-clave-secreta-aqui
 
 | Variable | Descripción |
 |----------|-------------|
-| `DATABASE_URL` | Conexión a PostgreSQL |
+| `DATABASE_URL` | Conexión a la base de datos (SQLite por defecto, PostgreSQL opcional) |
 | `FLASK_APP` | Archivo de entrada (siempre `run.py`) |
 | `FLASK_ENV` | `development` activa debug mode |
 | `JWT_SECRET_KEY` | Clave para firmar los tokens JWT |
 
 ### 5. Crear la base de datos
 
-En PostgreSQL:
+Con SQLite no necesitas crearla manualmente (se crea automáticamente al iniciar/migrar).
+
+Si usas PostgreSQL, crea primero la base:
 
 ```sql
 CREATE DATABASE cuidadorapp;

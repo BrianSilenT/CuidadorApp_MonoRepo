@@ -49,4 +49,4 @@ La aplicación cuenta con 3 tipos de usuarios. Usa estas credenciales para proba
 
 - **Backend no levanta:** Revisa `backend-flask/.env` y ejecuta migraciones (`flask db upgrade`).
 - **Frontend no conecta:** Revisa `frontend/.env.local` (`VITE_API_BASE_URL=http://127.0.0.1:5000`).
-- **Error de credenciales:** Reejecuta el seed de la base de datos: `python backend-flask/scripts/seed_test_users.py`
+- **Error de credenciales:** Reejecuta el seed de la base de datos: `python backend-flask/seed.py`
