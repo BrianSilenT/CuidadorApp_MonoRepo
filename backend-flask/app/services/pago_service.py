@@ -2,19 +2,11 @@ from app.extensions import db
 from app.models.pago import Pago
 from app.models.cuidador import Cuidador
 from datetime import datetime
+from app.services.pagination import build_paginated_response
 
 def obtener_todos_pagos(pagina=1, por_pagina=10):
     paginacion = Pago.query.paginate(page=pagina, per_page=por_pagina, error_out=False)
-    listado = []
-    for p in paginacion.items:
-        listado.append(p.to_dict())
-    return {
-        "datos": listado,
-        "pagina": paginacion.page,
-        "por_pagina": paginacion.per_page,
-        "total": paginacion.total,
-        "paginas": paginacion.pages
-    }
+    return build_paginated_response(paginacion, lambda p: p.to_dict())
 
 def obtener_pago_por_id(id):
     pago = Pago.query.get(id)
@@ -24,16 +16,7 @@ def obtener_pago_por_id(id):
 
 def obtener_pagos_por_cuidador(cuidador_id, pagina=1, por_pagina=10):
     paginacion = Pago.query.filter_by(cuidador_id=cuidador_id).paginate(page=pagina, per_page=por_pagina, error_out=False)
-    listado = []
-    for p in paginacion.items:
-        listado.append(p.to_dict())
-    return {
-        "datos": listado,
-        "pagina": paginacion.page,
-        "por_pagina": paginacion.per_page,
-        "total": paginacion.total,
-        "paginas": paginacion.pages
-    }
+    return build_paginated_response(paginacion, lambda p: p.to_dict())
 
 def crear_pago(datos):
     # Validaciones

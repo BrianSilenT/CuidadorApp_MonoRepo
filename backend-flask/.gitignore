@@ -4,3 +4,4 @@ venv/
 .env
 instance/
 uploads/
+cuidadorapp.db

@@ -1,10 +1,11 @@
 from flask import Blueprint, request, jsonify
 from app.extensions import bcrypt, db, tokens_revocados
 from app.models.usuario import Usuario
+from app.models.cuidador import Cuidador
 from app.services.usuario_service import obtener_usuario_por_email
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 
-auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -26,19 +27,31 @@ def login():
     if not password_valida:
         return jsonify({"error": "Credenciales inválidas"}), 401
 
+    if usuario.rol == "cuidador":
+        perfil_cuidador = Cuidador.query.filter_by(usuario_id=usuario.id).first()
+        if not perfil_cuidador:
+            return jsonify({"error": "Tu cuenta de cuidador no tiene perfil asociado"}), 403
+        if not perfil_cuidador.activo:
+            return jsonify({"error": "Tu solicitud de registro está pendiente de aprobación por un administrador"}), 403
+
     # Crear el token JWT
     token = create_access_token(identity=str(usuario.id))
 
     return jsonify({
         "mensaje": "Login exitoso",
         "token": token,
-        "usuario": {
-            "id": usuario.id,
-            "email": usuario.email,
-            "rol": usuario.rol
-        }
+        "usuario": usuario.to_dict()
     }), 200
 
+
+@auth_bp.route('/me', methods=['GET'])
+@jwt_required()
+def me():
+    current_user_id = get_jwt_identity()
+    usuario = Usuario.query.get(current_user_id)
+    if not usuario:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+    return jsonify(usuario.to_dict()), 200
 
 @auth_bp.route('/cambiar-password', methods=['PUT'])
 @jwt_required()

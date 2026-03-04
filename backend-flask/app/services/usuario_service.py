@@ -1,18 +1,10 @@
 from app.extensions import db, bcrypt
 from app.models.usuario import Usuario
+from app.services.pagination import build_paginated_response
 
 def obtener_todos_usuarios(pagina=1, por_pagina=10):
     paginacion = Usuario.query.paginate(page=pagina, per_page=por_pagina, error_out=False)
-    listado = []
-    for u in paginacion.items:
-        listado.append(u.to_dict())
-    return {
-        "datos": listado,
-        "pagina": paginacion.page,
-        "por_pagina": paginacion.per_page,
-        "total": paginacion.total,
-        "paginas": paginacion.pages
-    }
+    return build_paginated_response(paginacion, lambda u: u.to_dict())
 
 def obtener_usuario_por_id(id):
     usuario = Usuario.query.get(id)
@@ -21,10 +13,7 @@ def obtener_usuario_por_id(id):
     return None
 
 def obtener_usuario_por_email(email):
-    usuario = Usuario.query.filter_by(email=email).first()
-    if usuario:
-        return usuario
-    return None
+    return Usuario.query.filter_by(email=email).first()
 
 ROLES_VALIDOS = {"admin", "cuidador", "familia"}
 
