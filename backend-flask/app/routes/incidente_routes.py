@@ -5,7 +5,7 @@ from app.models.usuario import Usuario
 from app.models.cuidador import Cuidador
 from app.utils.permisos import rol_requerido
 
-incidente_bp = Blueprint("incidentes", __name__, url_prefix="/incidentes")
+incidente_bp = Blueprint("incidentes", __name__, url_prefix="/api/incidentes")
 
 @incidente_bp.route("/", methods=["GET"])
 @jwt_required()

@@ -4,7 +4,7 @@ from app.services import usuario_service
 from app.models.usuario import Usuario
 from app.utils.permisos import rol_requerido
 
-usuario_bp = Blueprint("usuarios", __name__, url_prefix="/usuarios")
+usuario_bp = Blueprint("usuarios", __name__, url_prefix="/api/usuarios")
 
 @usuario_bp.route("/", methods=["GET"])
 @jwt_required()

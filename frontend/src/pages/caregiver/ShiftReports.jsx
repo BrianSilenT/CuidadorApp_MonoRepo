@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import CaregiverLayout from '../../components/layouts/CaregiverLayout'
 import Button from '../../components/common/Button'
 import { LoadingState, EmptyState, ErrorState } from '../../components/common/DataState'
-import { guardiaService, pacienteService, unwrapList } from '../../services/api'
+import { guardiaService, pacienteService, unwrapList, pagoService } from '../../services/api'
 import { downloadCsv } from '../../utils/csv'
 
 export default function ShiftReports() {
@@ -55,46 +55,54 @@ export default function ShiftReports() {
   }, [])
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    try {
-      const informeCompuesto = [
-        `Tipo de atención: ${formData.care_type}`,
-        `Medicamentos administrados: ${formData.medicamentos || 'No aplica'}`,
-        `Novedades/incidentes: ${formData.novedades || 'Sin novedades'}`,
-        '',
-        `Detalle del turno: ${formData.informe}`
-      ].join('\n')
+  e.preventDefault()
+  try {
+    const informeCompuesto = [
+      `Tipo de atención: ${formData.care_type}`,
+      `Medicamentos administrados: ${formData.medicamentos || 'No aplica'}`,
+      `Novedades/incidentes: ${formData.novedades || 'Sin novedades'}`,
+      '',
+      `Detalle del turno: ${formData.informe}`
+    ].join('\n')
 
-      const activeShift = editingShiftId
-        ? guardias.find((g) => g.id === editingShiftId)
-        : guardias.find((g) => g.paciente?.id === parseInt(formData.paciente_id, 10) && g.estado !== 'Completado')
+    const activeShift = editingShiftId
+      ? guardias.find((g) => g.id === editingShiftId)
+      : guardias.find((g) => g.paciente?.id === parseInt(formData.paciente_id, 10) && g.estado !== 'Completado')
 
-      if (activeShift) {
-        await guardiaService.update(activeShift.id, {
-          estado: 'Completado',
-          informe: informeCompuesto,
-          horas_trabajadas: activeShift.horasTrabajadas || 4
-        })
-      } else {
-        await guardiaService.create({
-          paciente_id: formData.paciente_id,
-          fecha: new Date().toISOString().split('T')[0],
-          hora_inicio: '08:00',
-          hora_fin: '12:00',
-          estado: 'Completado',
-          informe: informeCompuesto,
-          horas_trabajadas: 4
-        })
-      }
+    if (activeShift) {
+      await guardiaService.update(activeShift.id, {
+        estado: 'Completado',
+        informe: informeCompuesto,
+        horas_trabajadas: activeShift.horasTrabajadas || 4
+      })
 
-      setFormData({ paciente_id: '', care_type: 'Administración de medicación', medicamentos: '', novedades: '', informe: '' })
-      setEditingShiftId(null)
-      localStorage.removeItem('caregiver_shift_report_draft')
-      loadData()
-    } catch {
-      alert('Error al guardar el reporte.')
+      // 🔹 Crear pago automático
+      const monto = (activeShift.horasTrabajadas || 4) * 200 // ejemplo: $200 por hora
+      await pagoService.createAutomatic(activeShift.cuidador?.id, monto)
+    } else {
+      const nuevaGuardia = await guardiaService.create({
+        paciente_id: formData.paciente_id,
+        fecha: new Date().toISOString().split('T')[0],
+        hora_inicio: '08:00',
+        hora_fin: '12:00',
+        estado: 'Completado',
+        informe: informeCompuesto,
+        horas_trabajadas: 4
+      })
+
+      // 🔹 Crear pago automático
+      const monto = 4 * 200
+      await pagoService.createAutomatic(nuevaGuardia.cuidador?.id, monto)
     }
+
+    setFormData({ paciente_id: '', care_type: 'Administración de medicación', medicamentos: '', novedades: '', informe: '' })
+    setEditingShiftId(null)
+    localStorage.removeItem('caregiver_shift_report_draft')
+    loadData()
+  } catch {
+    alert('Error al guardar el reporte.')
   }
+}
 
   const handleEditShift = (shift) => {
     setEditingShiftId(shift.id)

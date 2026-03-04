@@ -6,7 +6,7 @@ from app.models.cuidador import Cuidador
 from app.models.pago import Pago
 from app.utils.permisos import rol_requerido
 
-pago_bp = Blueprint("pagos", __name__, url_prefix="/pagos")
+pago_bp = Blueprint("pagos", __name__, url_prefix="/api/pagos")
 
 @pago_bp.route("/", methods=["GET"])
 @jwt_required()

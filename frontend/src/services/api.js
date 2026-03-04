@@ -68,7 +68,19 @@ export const guardiaService = {
   cancel: (id) => api.put(`/guardias/${id}`, { estado: 'Cancelado' })
 }
 
-export const pagoService = createService('pagos')
+export const pagoService = {
+  ...createService('pagos'), // mantiene los métodos existentes
+
+  createAutomatic: async (cuidadorId, monto) => {
+    return api.post('/pagos/', {
+      monto,
+      fecha_pago: new Date().toISOString().split('T')[0], // fecha actual
+      metodo: 'Automático',
+      confirmado: false,
+      cuidador_id: cuidadorId
+    })
+  }
+}
 export const usuarioService = createService('usuarios')
 export const incidenteService = createService('incidentes')
 export const logPacienteService = createService('logs-pacientes')

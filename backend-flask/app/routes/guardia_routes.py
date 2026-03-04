@@ -8,7 +8,7 @@ from app.models.guardia import Guardia
 from app.models.paciente import Paciente
 from app.utils.permisos import rol_requerido
 
-guardia_bp = Blueprint("guardias", __name__, url_prefix="/guardias")
+guardia_bp = Blueprint("guardias", __name__, url_prefix="/api/guardias")
 
 @guardia_bp.route("/", methods=["GET"])
 @jwt_required()

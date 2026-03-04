@@ -7,7 +7,6 @@ from app.models.guardia import Guardia
 from app.models.paciente import Paciente
 from app.models.usuario import Usuario
 
-
 DEFAULT_USERS = {
     "admin": {
         "email": "admin@cuidadorapp.com",
@@ -26,7 +25,6 @@ DEFAULT_USERS = {
     },
 }
 
-
 def _upsert_usuario(email, password, rol):
     usuario = Usuario.query.filter_by(email=email).first()
     if not usuario:
@@ -38,10 +36,10 @@ def _upsert_usuario(email, password, rol):
     db.session.flush()
     return usuario
 
-
 def seed_data(app):
     with app.app_context():
-        db.create_all()
+        # ❌ quitamos db.create_all()
+        # ✅ asumimos que las tablas ya existen gracias a flask db upgrade
 
         admin = _upsert_usuario(**DEFAULT_USERS["admin"])
         cuidador_user = _upsert_usuario(**DEFAULT_USERS["cuidador"])
@@ -91,7 +89,6 @@ def seed_data(app):
         print(" - Admin: admin@cuidadorapp.com / admin123")
         print(" - Cuidador: cuidador@cuidadorapp.com / cuidador123")
         print(" - Familia: familia@cuidadorapp.com / familia123")
-
 
 if __name__ == "__main__":
     app = create_app()

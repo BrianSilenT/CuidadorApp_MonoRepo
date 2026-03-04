@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 from app.services import cuidador_service
 from app.utils.permisos import rol_requerido
 
-cuidador_bp = Blueprint("cuidadores", __name__, url_prefix="/cuidadores")
+cuidador_bp = Blueprint("cuidadores", __name__, url_prefix="/api/cuidadores")
 
 @cuidador_bp.route("/", methods=["GET"])
 @jwt_required()

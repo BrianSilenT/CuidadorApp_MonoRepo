@@ -27,46 +27,49 @@ export default function LoginForm({ role }) {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
+  e.preventDefault()
+  setError('')
 
-    if (!formData.email || !formData.password) {
-      setError('Email y contraseña son obligatorios.')
+  if (!formData.email || !formData.password) {
+    setError('Email y contraseña son obligatorios.')
+    return
+  }
+
+  setLoading(true)
+  try {
+    const response = await authService.login({
+      email: formData.email,
+      password: formData.password
+    })
+
+    const token = response.data?.token
+    const loggedRole = response.data?.usuario?.rol
+
+    if (!token || !loggedRole) {
+      setError('Respuesta de login inválida.')
       return
     }
 
-    setLoading(true)
-    try {
-      const response = await authService.login({
-        email: formData.email,
-        password: formData.password
-      })
-
-      const token = response.data?.token
-      const loggedRole = response.data?.usuario?.rol
-
-      if (!token || !loggedRole) {
-        setError('Respuesta de login inválida.')
-        return
-      }
-
-      if (role && loggedRole !== role) {
-        setError(`Este acceso es para ${roleLabel[role] || role}. Tu usuario es ${roleLabel[loggedRole] || loggedRole}.`)
-        return
-      }
-
-      localStorage.setItem('token', token)
-      localStorage.setItem('userRole', loggedRole)
-      localStorage.setItem('user', JSON.stringify(response.data?.usuario || {}))
-
-      navigate(roleHome[loggedRole] || '/')
-    } catch (err) {
-      setError(err?.response?.data?.error || 'No se pudo iniciar sesión. Verifica tus credenciales.')
-    } finally {
-      setLoading(false)
+    if (role && loggedRole !== role) {
+      setError(`Tu usuario es ${roleLabel[loggedRole]}, pero intentaste entrar como ${roleLabel[role]}.`)
+      return
     }
-  }
 
+    localStorage.setItem('token', token)
+    localStorage.setItem('userRole', loggedRole)
+    localStorage.setItem('user', JSON.stringify(response.data?.usuario || {}))
+
+    navigate(roleHome[loggedRole] || '/')
+  } catch (err) {
+    if (err?.response?.status === 401) {
+      setError('Credenciales inválidas. Verifica tu email y contraseña.')
+    } else {
+      setError(err?.response?.data?.error || 'No se pudo iniciar sesión.')
+    }
+  } finally {
+    setLoading(false)
+  }
+}
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     setFormData(prev => ({

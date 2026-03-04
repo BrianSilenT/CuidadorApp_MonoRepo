@@ -7,7 +7,7 @@ from app.models.log_paciente import LogPaciente
 from app.models.paciente import Paciente
 from app.utils.permisos import rol_requerido
 
-log_paciente_bp = Blueprint("logs_pacientes", __name__, url_prefix="/logs-pacientes")
+log_paciente_bp = Blueprint("logs_pacientes", __name__, url_prefix="/api/logs-pacientes")
 
 @log_paciente_bp.route("/", methods=["GET"])
 @jwt_required()

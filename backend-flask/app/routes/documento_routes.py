@@ -5,7 +5,7 @@ from app.models.usuario import Usuario
 from app.models.cuidador import Cuidador
 from app.utils.permisos import rol_requerido
 
-documento_bp = Blueprint("documentos", __name__, url_prefix="/documentos")
+documento_bp = Blueprint("documentos", __name__, url_prefix="/api/documentos")
 
 @documento_bp.route("/cuidador/<int:cuidador_id>", methods=["POST"])
 @jwt_required()
