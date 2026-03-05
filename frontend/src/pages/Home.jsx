@@ -4,7 +4,7 @@ import Logo from '../components/common/Logo'
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col bg-[#f6f7f8]">
+    <div className="min-h-screen flex flex-col bg-[#f6f7f8] relative">
       <header className="flex items-center justify-between border-b border-[#e7edf3] bg-white px-6 md:px-10 py-3 sticky top-0 z-50">
         <div className="flex items-center gap-4 text-[#0d141b]">
           <Link to="/" className="flex items-center gap-3">
@@ -63,6 +63,13 @@ export default function Home() {
           <p className="text-[#4c739a] text-sm">Términos y privacidad disponibles bajo solicitud.</p>
         </div>
       </footer>
+
+      <Link
+        to="/admin/login"
+        className="absolute bottom-4 right-4 text-[#2b8cee] text-xs md:text-sm font-bold hover:underline"
+      >
+        ACCESO ADMINISTRADOR
+      </Link>
     </div>
   )
 }
